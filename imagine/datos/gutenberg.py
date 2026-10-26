@@ -29,7 +29,7 @@ def parrafos(texto: str) -> list[str]:
     texto = texto.replace("\r\n", "\n")
     salida = []
     for bloque in re.split(r"\n\s*\n", texto):
-        p = " ".join(l.strip() for l in bloque.splitlines()).strip()
+        p = " ".join(linea.strip() for linea in bloque.splitlines()).strip()
         p = re.sub(r"[_*]", "", p)  # marcas de itálica de Gutenberg
         p = re.sub(r"\s+", " ", p)
         if p:
