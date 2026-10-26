@@ -3,6 +3,16 @@ name = "imagine"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "inspect-ai>=0.3.285",
+    "inspect-flow>=0.14.0",
     "mlx-lm>=0.32.2",
     "truststore>=0.10.5",
 ]
+
+# Registra el proveedor mlx/ en Inspect AI.
+[project.entry-points.inspect_ai]
+imagine = "imagine.inspect_mlx"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
