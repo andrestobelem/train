@@ -90,6 +90,7 @@ uv run python -m imagine.evaluar --adaptadores runs/imagine300/paso_00150
 uv run python -m imagine.sft muestrear --adaptadores runs/imagine300/paso_00250
 uv run python -m imagine.sft entrenar --adaptadores runs/imagine300/paso_00250
 uv run python -m imagine.generar --adaptadores runs/sft/epoca_1 "Fragmento…"
+uv run python -m imagine.app   # app local de Gradio en http://127.0.0.1:7860
 ```
 
 ### Con Inspect AI e Inspect Flow
