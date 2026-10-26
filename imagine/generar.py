@@ -8,7 +8,7 @@ import argparse
 from mlx_lm import generate
 from mlx_lm.sample_utils import make_sampler
 
-from .modelo import CIERRA, cargar, muestrear, prompt, texto_imaginado
+from .modelo import ABRE, CIERRA, cargar, muestrear, prompt, texto_imaginado
 
 
 def main():
@@ -32,8 +32,10 @@ def main():
         max_tokens=args.max_tokens,
         sampler=make_sampler(temp=args.temperatura),
     )
-    # Se corta donde el modelo empezaría otro turno de la conversación.
-    print(continuacion.split("\nLector:")[0].strip())
+    # Se corta donde el modelo empezaría otro turno o volvería a las etiquetas.
+    for fin in ["\nLector:", ABRE, CIERRA]:
+        continuacion = continuacion.split(fin)[0]
+    print(continuacion.strip())
 
 
 if __name__ == "__main__":
