@@ -28,26 +28,42 @@ Una diferencia con R1-Zero: el prompt incluye un ejemplo (one-shot). Sin él, el
 
 ## Resultados
 
-100 pasos de GRPO (4 fragmentos × G=8 por paso, lr 2e-6, LoRA rango 16), ~1 h en una M2 Max. Evaluado sobre 40 fragmentos de *Niebla*, 4 muestras cada uno:
+300 pasos de GRPO (4 fragmentos × G=8 por paso, lr 2e-6, LoRA rango 16), ~3 h en una M2 Max, con un checkpoint cada 50 pasos. Cada modelo se evaluó sobre 40 fragmentos de *Niebla* con 4 muestras por fragmento, dos veces: con `imagine.evaluar` y con Inspect (`evals/niebla_flow.py`). La columna Δ está en nats/token.
 
-| | base | GRPO 100 pasos |
-|---|---|---|
-| Formato válido | 86,2 % | 98,1 % |
-| Recompensa media | 0,793 | 1,030 |
-| Δ log-verosimilitud del autor | −0,021 nats/token | +0,013 nats/token |
-| Imaginaciones que ayudan (Δ>0) | 29,7 % | 60,5 % |
+| Modelo | Formato (evaluar / Inspect) | Δ evaluar | Δ Inspect | Imaginaciones que ayudan (evaluar / Inspect) |
+|---|---|---|---|---|
+| base | 86 % / 84 % | −0,021 | −0,024 | 30 % / 28 % |
+| paso 50 | 98 % / 98 % | +0,008 | +0,010 | 56 % / 57 % |
+| paso 100 | 98 % / 96 % | +0,013 | +0,016 | 61 % / 69 % |
+| paso 150 | 99 % / 94 % | +0,021 | +0,026 | 70 % / 75 % |
+| paso 200 | 100 % / 99 % | +0,025 | +0,018 | 76 % / 67 % |
+| paso 250 | 99 % / 100 % | +0,023 | +0,027 | 74 % / 71 % |
+| paso 300 | 98 % / 98 % | +0,021 | +0,021 | 70 % / 67 % |
 
-Antes del entrenamiento, imaginar empeoraba la predicción del texto real. Después, la mejora, y lo hace en un libro que no vio. La prosa sigue siendo la de un modelo de 0.8B.
+- Antes del entrenamiento, imaginar empeoraba la predicción del texto real. Después la mejora, en un libro que el modelo no vio: de −0,02 a +0,02 nats/token.
+- La mejora crece hasta el paso ~150 y después se estanca. Entre los pasos 150 y 300 las diferencias (~0,005) están dentro del ruido: el error estándar de Δ es ±0,003 por muestra, y es mayor porque las 4 muestras de un fragmento están correlacionadas.
+- Las dos evaluaciones usan muestras distintas y coinciden dentro de ese ruido.
+- La prosa sigue siendo la de un modelo de 0.8B.
 
 ## Uso
 
 ```bash
 uv sync
-uv run python -m imagine.corpus                         # descarga y arma data/
-uv run python -m imagine.entrenar --salida runs/imagine # entrenamiento GRPO
-uv run python -m imagine.evaluar                        # modelo base sobre Niebla
-uv run python -m imagine.evaluar --adaptadores runs/imagine
-uv run python -m imagine.generar --adaptadores runs/imagine "Fragmento…"
+uv run python -m imagine.corpus                            # descarga y arma data/
+uv run python -m imagine.entrenar --salida runs/imagine300 # entrenamiento GRPO
+uv run python -m imagine.evaluar --adaptadores runs/imagine300/paso_00150
+uv run python -m imagine.generar --adaptadores runs/imagine300/paso_00150 "Fragmento…"
+```
+
+### Con Inspect AI e Inspect Flow
+
+El proyecto registra un proveedor `mlx/` en Inspect AI. El nombre del modelo es un repo de Hugging Face o una carpeta de checkpoint:
+
+```bash
+uv run inspect eval imagine/inspect_tarea.py@niebla --model mlx/Qwen/Qwen3.5-0.8B-Base
+uv run inspect eval imagine/inspect_tarea.py@niebla --model mlx/runs/imagine300/paso_00150
+uv run flow run evals/niebla_flow.py      # base + todos los checkpoints de IMAGINE_RUN
+uv run inspect view --log-dir logs/niebla
 ```
 
 Pensado para Apple Silicon (MLX). Las métricas de entrenamiento quedan en `runs/<nombre>/log.jsonl`.
