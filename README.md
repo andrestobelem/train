@@ -28,7 +28,7 @@ Una diferencia con R1-Zero: el prompt incluye un ejemplo (one-shot). Sin él, el
 
 ## Resultados
 
-300 pasos de GRPO (4 fragmentos × G=8 por paso, lr 2e-6, LoRA rango 16), ~3 h en una M2 Max, con un checkpoint cada 50 pasos. Cada modelo se evaluó sobre 40 fragmentos de *Niebla* con 4 muestras por fragmento, dos veces: con `imagine.evaluar` y con Inspect (`evals/niebla_flow.py`). La columna Δ está en nats/token.
+300 pasos de GRPO (4 fragmentos × G=8 por paso, lr 2e-6, LoRA rango 16), ~3 h en una M2 Max, con un checkpoint cada 50 pasos. Cada modelo se evaluó sobre 40 fragmentos de *Niebla* con 4 muestras por fragmento, dos veces: con el script `evaluar` original (hoy reemplazado por la tarea `imagine/niebla`) y con Inspect (`evals/niebla_flow.py`). La columna Δ está en nats/token.
 
 | Modelo | Formato (evaluar / Inspect) | Δ evaluar | Δ Inspect | Imaginaciones que ayudan (evaluar / Inspect) |
 |---|---|---|---|---|
@@ -56,7 +56,7 @@ La val loss baja de 3,33 a 3,03 en la época 1 y sube en la 2, así que se usa `
 
 ### Evaluación final en *Niebla* (Inspect)
 
-Imaginación (`imagine/inspect_tarea.py`, 40 fragmentos × 4 muestras; Δ en nats/token):
+Imaginación (tarea `imagine/niebla`, 40 fragmentos × 4 muestras; Δ en nats/token):
 
 | Modelo | Formato | Δ | Imaginaciones que ayudan |
 |---|---|---|---|
@@ -65,7 +65,7 @@ Imaginación (`imagine/inspect_tarea.py`, 40 fragmentos × 4 muestras; Δ en nat
 | RL paso 300 | 97 % | +0,021 | 67 % |
 | RL + SFT | 99 % | +0,030 | 77 % |
 
-Prosa de la continuación (`imagine/inspect_prosa.py`, 40 fragmentos × 2 muestras):
+Prosa de la continuación (tarea `imagine/prosa`, 40 fragmentos × 2 muestras):
 
 | Modelo | Repetición ↓ | Diversidad ↑ | Fluidez ↑ | chrF con el autor ↑ | Palabras |
 |---|---|---|---|---|---|
@@ -80,29 +80,45 @@ Prosa de la continuación (`imagine/inspect_prosa.py`, 40 fragmentos × 2 muestr
 - Con un largo similar al del modelo base sin imaginar, el SFT se parece más al autor (chrF 0,169 contra 0,156).
 - La fluidez se mide sin la imaginación en el contexto, así que penaliza continuaciones que siguen lo imaginado. La prosa sigue siendo la de un modelo de 0.8B.
 
+## Arquitectura
+
+El código sigue los principios de [CONSTITUTION.md](CONSTITUTION.md). Cada paquete de `imagine/` tiene una sola responsabilidad, y las dependencias van de arriba hacia abajo:
+
+| Paquete | Responsabilidad | Depende de |
+|---|---|---|
+| `dominio` | Reglas puras: plantilla y etiquetas, cortes, formato, recompensa, métricas de prosa | — |
+| `datos` | Corpus de Gutenberg, rutas y archivos jsonl | `dominio` |
+| `persistencia` | Guardar y leer adaptadores LoRA | — |
+| `ejecucion` | MLX: carga con caché única, hilo dedicado, muestreo, escritor, puntuación contra el corpus | `dominio`, `datos`, `persistencia` |
+| `entrenamiento` | GRPO, rejection sampling + SFT, LoRA | `ejecucion` y anteriores |
+| `integraciones.inspect` | Proveedor `mlx/` y tareas `imagine/niebla` e `imagine/prosa` | `ejecucion` y anteriores |
+| `interfaz` | Línea de comandos y app de Gradio | `ejecucion` y anteriores |
+
+Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.5-0.8B-Base`) o una carpeta de adaptadores del proyecto (`runs/sft/epoca_1`).
+
 ## Uso
 
 ```bash
 uv sync
-uv run python -m imagine.corpus                            # descarga y arma data/
-uv run python -m imagine.entrenar --salida runs/imagine300 # entrenamiento GRPO
-uv run python -m imagine.evaluar --adaptadores runs/imagine300/paso_00150
-uv run python -m imagine.sft muestrear --adaptadores runs/imagine300/paso_00250
-uv run python -m imagine.sft entrenar --adaptadores runs/imagine300/paso_00250
-uv run python -m imagine.generar --adaptadores runs/sft/epoca_1 "Fragmento…"
-uv run python -m imagine.app   # app local de Gradio en http://127.0.0.1:7860
+uv run python -m imagine.datos.corpus                                    # descarga y arma data/
+uv run python -m imagine.entrenamiento.grpo --salida runs/imagine300     # RL con GRPO
+uv run python -m imagine.entrenamiento.sft muestrear --adaptadores runs/imagine300/paso_00250
+uv run python -m imagine.entrenamiento.sft entrenar --adaptadores runs/imagine300/paso_00250
+uv run python -m imagine.interfaz.generar --modelo runs/sft/epoca_1 "Fragmento…"
+uv run python -m imagine.interfaz.app                                    # Gradio en http://127.0.0.1:7860
 ```
 
 ### Con Inspect AI e Inspect Flow
 
-El proyecto registra un proveedor `mlx/` en Inspect AI. El nombre del modelo es un repo de Hugging Face o una carpeta de checkpoint:
+El proyecto registra en Inspect AI el proveedor `mlx/` y las tareas `imagine/niebla` (imaginación) e `imagine/prosa` (calidad de la continuación):
 
 ```bash
-uv run inspect eval imagine/inspect_tarea.py@niebla --model mlx/Qwen/Qwen3.5-0.8B-Base
-uv run inspect eval imagine/inspect_tarea.py@niebla --model mlx/runs/imagine300/paso_00150
+uv run inspect eval imagine/niebla --model mlx/Qwen/Qwen3.5-0.8B-Base
+uv run inspect eval imagine/niebla --model mlx/runs/sft/epoca_1
+uv run inspect eval imagine/prosa --model mlx/Qwen/Qwen3.5-0.8B-Base -T imaginar=false
 uv run flow run evals/niebla_flow.py      # base + todos los checkpoints de IMAGINE_RUN
 uv run flow run evals/prosa_flow.py       # prosa: base, base imaginando y entrenados
-uv run python evals/resumen.py logs/prosa # tabla desde los logs
+uv run python evals/resumen.py logs/prosa # tablas desde los logs
 uv run inspect view --log-dir logs/niebla
 ```
 
