@@ -32,8 +32,8 @@ def prompt(contexto: str) -> str:
     return PLANTILLA.format(contexto=contexto)
 
 
-def cargar(adaptadores: str | None = None):
-    return load(MODELO_BASE, adapter_path=adaptadores)
+def cargar(adaptadores: str | None = None, base: str = MODELO_BASE):
+    return load(base, adapter_path=adaptadores)
 
 
 def cabeza(model, h):
@@ -89,12 +89,20 @@ def rellenar(secuencias: list[list[int]], pad: int) -> mx.array:
     return mx.array([s + [pad] * (largo - len(s)) for s in secuencias])
 
 
-def muestrear(model, tok, prompt_ids: list[int], n: int, max_tokens: int, temperatura: float):
+def muestrear(
+    model,
+    tok,
+    prompt_ids: list[int],
+    n: int,
+    max_tokens: int,
+    temperatura: float,
+    paradas: tuple[str, ...] = (CIERRA,),
+):
     """Genera n completaciones del mismo prompt en paralelo.
 
     Como todas comparten el prompt no hace falta padding: el prefill se hace una vez
     con el prompt repetido y luego se decodifica token a token. Cada completación se
-    corta al cerrar </imagine> o al emitir EOS.
+    corta al aparecer una de las paradas (por defecto </imagine>) o al emitir EOS.
     """
     cache = make_prompt_cache(model)
     logits = model(mx.array([prompt_ids] * n), cache=cache)[:, -1]
@@ -110,7 +118,8 @@ def muestrear(model, tok, prompt_ids: list[int], n: int, max_tokens: int, temper
             if not vivas[i]:
                 continue
             salidas[i].append(t)
-            if t == tok.eos_token_id or CIERRA in tok.decode(salidas[i][-6:]):
+            cola = tok.decode(salidas[i][-8:])
+            if t == tok.eos_token_id or any(p in cola for p in paradas):
                 vivas[i] = False
         if not any(vivas):
             break
