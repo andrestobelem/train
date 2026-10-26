@@ -96,9 +96,10 @@ def paso_grupo(model, ref_model, tok, ejemplo, args):
     return grads, metricas
 
 
-def guardar(model, salida: Path, args, nombre="adapters.safetensors"):
+def guardar(model, salida: Path, args):
     salida.mkdir(parents=True, exist_ok=True)
-    mx.save_safetensors(str(salida / nombre), dict(tree_flatten(model.trainable_parameters())))
+    pesos = dict(tree_flatten(model.trainable_parameters()))
+    mx.save_safetensors(str(salida / "adapters.safetensors"), pesos)
     config = {
         "fine_tune_type": "lora",
         "num_layers": args.capas,
@@ -183,7 +184,8 @@ def main():
         )
         if paso % args.guardar_cada == 0 or paso == args.pasos:
             guardar(model, salida, args)
-            guardar(model, salida, args, f"{paso:05d}_adapters.safetensors")
+            # Cada checkpoint en su carpeta, cargable con --adaptadores.
+            guardar(model, salida / f"paso_{paso:05d}", args)
 
 
 if __name__ == "__main__":
