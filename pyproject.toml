@@ -11,9 +11,9 @@ dependencies = [
     "truststore>=0.10.5",
 ]
 
-# Registra el proveedor mlx/ en Inspect AI.
+# Registra en Inspect AI el proveedor mlx/ y las tareas imagine/niebla e imagine/prosa.
 [project.entry-points.inspect_ai]
-imagine = "imagine.inspect_mlx"
+imagine = "imagine.integraciones.inspect"
 
 [build-system]
 requires = ["hatchling"]

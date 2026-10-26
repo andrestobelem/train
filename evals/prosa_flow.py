@@ -11,7 +11,7 @@ import os
 
 from inspect_flow import FlowOptions, FlowSpec, FlowTask
 
-TAREA = "../imagine/inspect_prosa.py@prosa"
+TAREA = "imagine/prosa"
 BASE = "mlx/Qwen/Qwen3.5-0.8B-Base"
 ENTRENADOS = os.environ.get(
     "IMAGINE_MODELOS", "runs/imagine300/paso_00150,runs/imagine300/paso_00300"
@@ -20,9 +20,7 @@ ENTRENADOS = os.environ.get(
 FlowSpec(
     log_dir="../logs/prosa",
     # MLX usa una sola GPU: de a una tarea y de a una muestra.
-    options=FlowOptions(
-        max_tasks=1, max_samples=1, display="plain", log_dir_allow_dirty=True
-    ),
+    options=FlowOptions(max_tasks=1, max_samples=1, display="plain", log_dir_allow_dirty=True),
     tasks=[
         FlowTask(name=TAREA, model=BASE, args={"imaginar": False}),
         FlowTask(name=TAREA, model=BASE, args={"imaginar": True}),

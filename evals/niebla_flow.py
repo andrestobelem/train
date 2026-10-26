@@ -24,11 +24,9 @@ modelos = [m.replace(f"{RAIZ}/", "") for m in modelos]
 FlowSpec(
     log_dir="../logs/niebla",
     # MLX usa una sola GPU: de a una tarea y de a una muestra.
-    options=FlowOptions(
-        max_tasks=1, max_samples=1, display="plain", log_dir_allow_dirty=True
-    ),
+    options=FlowOptions(max_tasks=1, max_samples=1, display="plain", log_dir_allow_dirty=True),
     tasks=tasks_matrix(
-        task=FlowTask(name="../imagine/inspect_tarea.py@niebla"),
+        task=FlowTask(name="imagine/niebla"),
         model=modelos,
     ),
 )
