@@ -10,9 +10,7 @@ Son modelos base: no se aplica plantilla de chat, el texto de los mensajes se pa
 tal cual como prompt. Se registra en Inspect con el entry point de pyproject.toml.
 """
 
-import asyncio
 import json
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from inspect_ai.model import (
@@ -25,24 +23,9 @@ from inspect_ai.model import (
 )
 from inspect_ai.tool import ToolChoice, ToolInfo
 
-from .modelo import cargar, muestrear
+from .modelo import cargar, en_hilo_mlx, en_hilo_mlx_async, muestrear
 
 RAIZ = Path(__file__).resolve().parents[1]
-
-# MLX ata sus streams al hilo que los crea: cargar, generar y puntuar tiene que
-# pasar siempre por el mismo hilo, que además serializa el uso de la GPU.
-_HILO_MLX = ThreadPoolExecutor(max_workers=1, thread_name_prefix="mlx")
-
-
-def en_hilo_mlx(fn, *args, **kwargs):
-    """Corre fn en el hilo de MLX y espera el resultado (desde código sincrónico)."""
-    return _HILO_MLX.submit(fn, *args, **kwargs).result()
-
-
-async def en_hilo_mlx_async(fn, *args):
-    """Corre fn en el hilo de MLX sin bloquear el event loop de Inspect."""
-    return await asyncio.get_running_loop().run_in_executor(_HILO_MLX, fn, *args)
-
 
 _REFERENCIA = None
 
