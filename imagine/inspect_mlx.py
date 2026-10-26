@@ -44,6 +44,17 @@ async def en_hilo_mlx_async(fn, *args):
     return await asyncio.get_running_loop().run_in_executor(_HILO_MLX, fn, *args)
 
 
+_REFERENCIA = None
+
+
+def modelo_referencia():
+    """Modelo base congelado con el que puntúan los scorers (se carga una sola vez)."""
+    global _REFERENCIA
+    if _REFERENCIA is None:
+        _REFERENCIA = en_hilo_mlx(cargar)
+    return _REFERENCIA
+
+
 @modelapi(name="mlx")
 class MLXAPI(ModelAPI):
     def __init__(
