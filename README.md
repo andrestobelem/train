@@ -26,6 +26,19 @@ La imaginación no ve la referencia, así que sólo suma si anticipa lo que de v
 
 Una diferencia con R1-Zero: el prompt incluye un ejemplo (one-shot). Sin él, el modelo de 0.8B cierra la etiqueta sólo ~5 % de las veces; con él, ~90 % a temperatura 0.8.
 
+## Resultados
+
+100 pasos de GRPO (4 fragmentos × G=8 por paso, lr 2e-6, LoRA rango 16), ~1 h en una M2 Max. Evaluado sobre 40 fragmentos de *Niebla*, 4 muestras cada uno:
+
+| | base | GRPO 100 pasos |
+|---|---|---|
+| Formato válido | 86,2 % | 98,1 % |
+| Recompensa media | 0,793 | 1,030 |
+| Δ log-verosimilitud del autor | −0,021 nats/token | +0,013 nats/token |
+| Imaginaciones que ayudan (Δ>0) | 29,7 % | 60,5 % |
+
+Antes del entrenamiento, imaginar empeoraba la predicción del texto real. Después, la mejora, y lo hace en un libro que no vio. La prosa sigue siendo la de un modelo de 0.8B.
+
 ## Uso
 
 ```bash
