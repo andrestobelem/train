@@ -1,5 +1,17 @@
 # imagine
 
+## En pocas palabras
+
+Enseñamos a una inteligencia artificial chica a **imaginar antes de escribir**. Le damos un pedazo de una novela en español y, antes de seguirla, el modelo anota en pocas líneas qué sienten los personajes y qué va a pasar. Recién después escribe el párrafo siguiente.
+
+¿Cómo aprende a imaginar bien? Comparamos lo que imaginó con lo que el autor escribió de verdad, que el modelo nunca vio. Si lo imaginado ayuda a anticipar lo que pasa en la novela, el modelo recibe un premio, y así aprende a imaginar mejor. Es la misma idea con la que DeepSeek-R1 aprendió a «pensar» antes de resolver problemas de matemática, aplicada a la literatura.
+
+**El resultado.** Antes de entrenarlo, lo que imaginaba lo despistaba más de lo que lo ayudaba. Después, en un libro que nunca había leído (*Niebla*, de Unamuno), imagina cosas que sí ayudan a anticipar lo que escribió el autor en tres de cada cuatro casos. Es un modelo muy chico, que corre en una notebook, así que todavía escribe como un aprendiz: arma bien las frases, pero pierde el hilo rápido.
+
+**Para probarlo.** Se puede usar en el navegador o escribir una historia por turnos con él: vos escribís un párrafo, el modelo sigue, y así. Las instrucciones están en [Inicio rápido](#inicio-rápido).
+
+## La receta de DeepSeek-R1, aplicada a la escritura
+
 Adaptación de la receta de [DeepSeek-R1](https://arxiv.org/abs/2501.12948) (RL puro con GRPO y recompensas basadas en reglas sobre un modelo base) a la escritura literaria en lugar de la matemática.
 
 | DeepSeek-R1-Zero | imagine |
