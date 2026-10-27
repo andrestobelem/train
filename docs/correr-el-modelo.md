@@ -1,100 +1,117 @@
 # Correr el modelo
 
-Cómo usar el escritor entrenado para que imagine y continúe un fragmento: desde la línea de comandos, con la app de Gradio, desde Python o con `mlx_lm` directamente.
+Todo se usa con un solo comando, `imagine`:
 
-## Requisitos
+| Comando | Qué hace |
+|---|---|
+| `uv run imagine app` | Abre la app en el navegador |
+| `uv run imagine cuatro-manos` | Escribe una historia por turnos en la terminal |
+| `uv run imagine generar "…"` | Imagina y continúa un fragmento, y termina |
 
-- Una Mac con Apple Silicon (M1 o posterior). El proyecto usa [MLX](https://github.com/ml-explore/mlx) y no corre en Linux, Windows ni Macs con Intel (ver [ADR 0004](adr/0004-mlx-en-apple-silicon.md)).
-- [uv](https://docs.astral.sh/uv/). Instala por su cuenta Python 3.12 o posterior.
-- Para usar el modelo alcanzan unos 3 GB de memoria; generar un fragmento usa ~2,3 GB. Entrenar es otra cosa (ver [entrenar-y-evaluar.md](entrenar-y-evaluar.md)).
+## Instalar
+
+Hace falta una Mac con chip Apple (M1 o posterior). No corre en Windows, Linux ni Macs con Intel ([ADR 0004](adr/0004-mlx-en-apple-silicon.md)).
+
+1. Instalá [uv](https://docs.astral.sh/uv/), que se encarga de Python y las dependencias:
+
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. En la carpeta del proyecto:
+
+   ```bash
+   uv sync
+   ```
+
+3. Bajá el modelo entrenado. Está en un repo privado de Hugging Face, así que necesitás una cuenta con acceso:
+
+   ```bash
+   uv run hf auth login
+   uv run hf download andrestobelem/imagine-qwen3.5-0.8b --local-dir runs/sft/epoca_1
+   ```
+
+La primera vez que se usa, también se baja el modelo base de Hugging Face (~1,7 GB). Después funciona sin conexión.
+
+Si falta el modelo entrenado, `imagine` lo avisa y muestra estos mismos comandos.
+
+## La app
 
 ```bash
-uv sync
+uv run imagine app
 ```
 
-La primera vez que se carga un modelo, `mlx_lm` descarga el [modelo base](https://huggingface.co/Qwen/Qwen3.5-0.8B-Base) de Hugging Face (~1,7 GB) y lo deja en la caché de `~/.cache/huggingface`. Después funciona sin conexión.
+Se abre el navegador en http://127.0.0.1:7860. Para cerrarla, Ctrl-C en la terminal. Tiene dos pestañas:
 
-## Qué modelo se usa
+- **Fragmento.** Pegás unas líneas de una novela y apretás «Continuar». A la derecha aparecen la imaginación y, debajo, la continuación. Abajo hay fragmentos de *Niebla* para probar sin escribir nada; aparecen si antes se armó el corpus con `uv run python -m imagine.datos.corpus`.
+- **A cuatro manos.** Escribís un párrafo, el modelo escribe el siguiente y vuelve a ser tu turno. La imaginación de cada turno aparece plegada arriba de su respuesta.
 
-Un modelo entrenado por este proyecto no es una copia del modelo base: son **adaptadores LoRA** (~40 MB) que se suman al modelo base al cargarlo. Cada carpeta de adaptadores tiene `adapters.safetensors` y un `adapter_config.json` que dice cuál es su modelo base.
+En las dos podés elegir el modelo:
 
-| Nombre | Carpeta | Qué es |
-|---|---|---|
-| Modelo final | `runs/sft/epoca_1` | RL + selección + ajuste supervisado. Es el que se usa por defecto. |
-| RL | `runs/imagine300/paso_00250` | Sólo GRPO, paso 250. Imagina bien y escribe más largo y menos fluido. |
-| Modelo base | `Qwen/Qwen3.5-0.8B-Base` | Sin entrenar por este proyecto, para comparar. |
+- **Entrenado (final)**: el de este proyecto.
+- **Sin entrenar (base)**: para comparar.
+- **Sólo RL (paso 250)**: aparece sólo en la máquina donde se entrenó.
 
-Esas rutas están en [`imagine/persistencia/catalogo.py`](../imagine/persistencia/catalogo.py). Donde el código pide un modelo, acepta un repo de Hugging Face o una carpeta de adaptadores.
+Opciones: `--puerto 7861` para usar otro puerto y `--no-abrir` para no abrir el navegador.
 
-### Bajar el modelo final
+## En la terminal
 
-`runs/` no está en git, así que al clonar el repositorio los adaptadores no vienen incluidos. El modelo final está en Hugging Face, en el repo privado [andrestobelem/imagine-qwen3.5-0.8b](https://huggingface.co/andrestobelem/imagine-qwen3.5-0.8b). Para bajarlo necesitás una cuenta con acceso a ese repo:
+### A cuatro manos
 
 ```bash
-uv run hf auth login
-uv run hf download andrestobelem/imagine-qwen3.5-0.8b --local-dir runs/sft/epoca_1
+uv run imagine cuatro-manos
 ```
 
-Se baja en la carpeta que el código usa por defecto, así que después alcanza con `uv run python -m imagine.interfaz.generar "…"`. Si no tenés acceso, pedíselo al dueño del repo. También podés entrenar los adaptadores siguiendo [entrenar-y-evaluar.md](entrenar-y-evaluar.md), o usar sólo el modelo base con `--modelo Qwen/Qwen3.5-0.8B-Base`.
+```
+Lector> Llovía.
 
-El checkpoint de RL (`runs/imagine300/paso_00250`) no está publicado: para usarlo, entrenalo.
+<imagine> Quiere decirse que ella estaba muy preparada para el desmayo, porque había tenido la sensación de estar fuerte y de haberse de una manera. </imagine>
+
+Escritor> — Él no es el de la calle. ¿Y él es el de la calle?
+
+Lector>
+```
+
+- Escribí un párrafo y apretá Enter.
+- Con una línea vacía pasás el turno y el modelo sigue solo.
+- Para terminar: `/fin`, Ctrl-D o Ctrl-C.
+
+### Un fragmento
+
+```bash
+uv run imagine generar "Augusto salió a la calle sin saber adónde ir. Llovía."
+uv run imagine generar < fragmento.txt
+```
+
+Imprime la imaginación y la continuación, y termina. Cada vez carga el modelo de nuevo (unos segundos); para probar muchos fragmentos conviene la app.
+
+### Opciones
+
+| Opción | Dónde | Por defecto | Para qué |
+|---|---|---|---|
+| `--modelo` | las dos | el entrenado | `Qwen/Qwen3.5-0.8B-Base` para comparar, u otra carpeta de `runs/` |
+| `--temperatura` | las dos | 0,7 | Más alta: más variada y menos coherente |
+| `--max-tokens` | las dos | 160 por turno, 200 en `generar` | Largo máximo de lo que escribe |
+| `--ocultar-imaginacion` | `cuatro-manos` | — | No muestra lo imaginado |
+| `--sin-imaginar` | `generar` | — | Continúa sin imaginar antes, para comparar |
+
+`uv run imagine <comando> --help` lista las opciones de cada uno.
 
 ## Qué esperar
 
-Es un modelo base de 0.8B: **no sigue instrucciones ni conversa**. Recibe un fragmento de novela en español y hace dos cosas:
+Es un modelo chico (800 millones de parámetros) que continúa texto: **no responde preguntas ni sigue instrucciones**. Si le escribís «contame un cuento», no lo cuenta: sigue esa frase como si fuera parte de una novela.
 
-1. Imagina brevemente la escena entre `<imagine>` y `</imagine>`: qué sienten los personajes y cómo sigue.
-2. Escribe la continuación, que termina cuando le tocaría el turno al lector.
+- Funciona mejor con prosa narrativa en español, de unas pocas líneas hasta 180 palabras. Si le das más, ve sólo las últimas 180.
+- Escribe frases correctas con tono de novela del siglo XIX, pero pierde el hilo en pocas líneas.
+- Sus imaginaciones son vagas y repiten giros como «se había de». El [apéndice](apendice-pruebas.md) explica por qué y muestra ejemplos.
 
-Funciona mejor con prosa narrativa en español, de unas 50 a 180 palabras. Si el texto es más largo, el escritor ve sólo las últimas 180 palabras. La prosa es la de un modelo de 0.8B: suele ser coherente frase a frase, pero pierde el hilo rápido.
+## Para programadores
 
-## Línea de comandos
+### Qué es el modelo
 
-```bash
-uv run python -m imagine.interfaz.generar "Augusto salió a la calle sin saber adónde ir. Llovía, y el paraguas abierto le parecía un techo que lo seguía."
-```
+Un modelo de este proyecto son **adaptadores LoRA** (~40 MB) que se suman al [modelo base](https://huggingface.co/Qwen/Qwen3.5-0.8B-Base) al cargarlo. Cada carpeta tiene `adapters.safetensors` y un `adapter_config.json` que dice cuál es su modelo base. Las rutas de los modelos entrenados están en [`imagine/persistencia/catalogo.py`](../imagine/persistencia/catalogo.py).
 
-```
-<imagine> Augusto se había de armar con el paraguas, porque no quería ser despojado por la lluvia; … </imagine>
-
-— ¿Qué te viene? —dijo un joven que le miraba a él desde la esquina.
-…
-```
-
-| Opción | Por defecto | Para qué |
-|---|---|---|
-| `--modelo` | `runs/sft/epoca_1` | Otra carpeta de adaptadores o un repo de Hugging Face |
-| `--temperatura` | 0,7 | Más alta, más variada y menos coherente |
-| `--max-tokens` | 200 | Largo máximo de la continuación (la imaginación tiene su propio tope de 96 tokens) |
-| `--sin-imaginar` | — | Continúa sin imaginar antes, para comparar |
-
-Cada corrida carga el modelo de nuevo (~2 s). Para probar muchos fragmentos conviene la app.
-
-## A cuatro manos en la terminal
-
-```bash
-uv run python -m imagine.interfaz.cuatro_manos
-```
-
-Es la historia a cuatro manos de la app, pero en la terminal. Escribís un párrafo como lector y apretás Enter; el escritor imagina (en gris) y sigue la historia, y vuelve a ser tu turno. Una línea vacía pasa el turno, así que el escritor sigue solo. `/fin` o Ctrl-D terminan. Acepta `--modelo`, `--temperatura`, `--max-tokens` (160 por turno) y `--sin-imaginacion` para no mostrar lo imaginado.
-
-> [!NOTE]
-> No sirve `mlx_lm chat`: envuelve cada mensaje en la plantilla de chat de Qwen, y el escritor se entrenó con su propia plantilla de lector y escritor. Con la plantilla de chat, el modelo comenta el texto en lugar de imaginar y continuar.
-
-## App de Gradio
-
-```bash
-uv run python -m imagine.interfaz.app
-```
-
-Abrí http://127.0.0.1:7860. La app carga cada modelo una vez y lo mantiene en memoria. Tiene dos pestañas:
-
-- **Fragmento**: pegás un fragmento, elegís el modelo y ves por separado la imaginación y la continuación. Podés apagar «Imaginar antes de escribir» para comparar. Si existe `data/test.jsonl`, abajo aparecen fragmentos de *Niebla* como ejemplos; ese archivo se genera con `uv run python -m imagine.datos.corpus`.
-- **A cuatro manos**: escribís un párrafo, el escritor sigue la historia y vuelve a ser tu turno. La imaginación de cada turno aparece plegada y no forma parte de la historia.
-
-La app sólo escucha en la máquina local. Si necesitás un enlace público temporal, cambiá `construir().launch()` por `construir().launch(share=True)` en `imagine/interfaz/app.py`.
-
-## Desde Python
+### Desde Python
 
 ```python
 from imagine.ejecucion.escritor import imaginar_y_continuar
@@ -109,12 +126,11 @@ print(continuacion)
 
 Para escribir por turnos, `turno_del_escritor` recibe una `Historia` (de `imagine.dominio.historia`) y la devuelve con el turno del escritor agregado.
 
-> [!NOTE]
-> MLX ata sus streams al hilo que los creó. Si lo usás desde un servidor con varios hilos, como Gradio o Inspect, corré todo lo que toque al modelo dentro de `imagine.ejecucion.hilo.en_hilo_mlx`.
+MLX ata sus streams al hilo que los creó. Desde un servidor con varios hilos, como Gradio o Inspect, corré todo lo que toque al modelo dentro de `imagine.ejecucion.hilo.en_hilo_mlx`.
 
-## Con `mlx_lm` directamente
+### Con `mlx_lm`
 
-Los adaptadores son LoRA estándar de `mlx_lm`, así que también se pueden usar sin este paquete. Hay que darle al modelo la plantilla con la que se entrenó (`PLANTILLA` en [`imagine/dominio/escritura.py`](../imagine/dominio/escritura.py)) y desactivar la plantilla de chat:
+Los adaptadores también andan con `mlx_lm` directamente, si se le da la plantilla con la que se entrenó (`PLANTILLA` en [`imagine/dominio/escritura.py`](../imagine/dominio/escritura.py)) y se desactiva la plantilla de chat:
 
 ```bash
 uv run python -m mlx_lm generate \
@@ -123,14 +139,13 @@ uv run python -m mlx_lm generate \
   --prompt "$(uv run python -c 'from imagine.dominio.escritura import prompt; print(prompt("Augusto salió a la calle…"), end="")')"
 ```
 
-`mlx_lm` no sabe dónde termina un turno, así que puede seguir escribiendo `Lector:` y otro fragmento. La imaginación y la continuación salen en un solo paso y a la misma temperatura. El código del proyecto, en cambio, corta la imaginación en `</imagine>` y la continuación en el turno siguiente.
+`mlx_lm` no sabe dónde termina un turno, así que puede seguir escribiendo `Lector:` y otro fragmento. `mlx_lm chat` no sirve: envuelve cada mensaje en la plantilla de chat de Qwen y el modelo comenta el texto en lugar de continuarlo.
 
 ## Problemas comunes
 
-| Síntoma | Causa y solución |
+| Síntoma | Qué hacer |
 |---|---|
-| `RepositoryNotFoundError` (401) con `runs/...` | La carpeta de adaptadores no existe y el nombre se interpretó como un repo de Hugging Face. Revisá que esté `adapter_config.json` dentro de la carpeta, o bajala como se explica en [Bajar el modelo final](#bajar-el-modelo-final). |
-| `401` o `403` al bajar el modelo final | No iniciaste sesión, o tu cuenta no tiene acceso al repo privado. Iniciá sesión con `uv run hf auth login` y pedí acceso. |
+| `401` o `403` al bajar el modelo | No iniciaste sesión o tu cuenta no tiene acceso al repo. Corré `uv run hf auth login` y pedí acceso. |
+| `CERTIFICATE_VERIFY_FAILED` al bajar algo | Un proxy de la red intercepta la conexión. Bajá el modelo desde otra red o configurá `REQUESTS_CA_BUNDLE`. |
+| «El puerto 7860 está ocupado» al abrir la app | Ya hay una app abierta: usala, cerrala o abrí otra con `--puerto 7861`. |
 | `There is no Stream(cpu, 0) in current thread` | Se usó MLX desde otro hilo. Envolvé la llamada con `en_hilo_mlx`. |
-| Falla la descarga con `CERTIFICATE_VERIFY_FAILED` | Un proxy corporativo intercepta TLS. Para el corpus el proyecto ya usa los certificados del sistema. Para Hugging Face, descargá el modelo una vez desde una red sin proxy o configurá `REQUESTS_CA_BUNDLE`. |
-| La imaginación sale cortada o sin `</imagine>` | Llegó al tope de 96 tokens sin cerrarla. Pasa poco con el modelo final y más con el base o a temperatura alta. El escritor la cierra y continúa igual, pero esa imaginación no tiene formato válido. |

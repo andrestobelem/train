@@ -28,21 +28,16 @@ Después del RL viene, como en R1, una etapa de selección y ajuste supervisado.
 
 ## Inicio rápido
 
-En una Mac con Apple Silicon y [uv](https://docs.astral.sh/uv/):
+En una Mac con chip Apple y [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uv sync
-uv run python -m imagine.interfaz.app        # http://127.0.0.1:7860
-uv run python -m imagine.interfaz.generar "Augusto salió a la calle sin saber adónde ir."
-```
-
-Los adaptadores entrenados (`runs/`) no están en git. El modelo final se baja de un repo privado de Hugging Face, que requiere acceso:
-
-```bash
+uv run hf auth login
 uv run hf download andrestobelem/imagine-qwen3.5-0.8b --local-dir runs/sft/epoca_1
+uv run imagine app
 ```
 
-Sin los adaptadores, sólo funciona el modelo base: `--modelo Qwen/Qwen3.5-0.8B-Base`. Los detalles están en [docs/correr-el-modelo.md](docs/correr-el-modelo.md#bajar-el-modelo-final).
+El modelo entrenado está en un repo privado de Hugging Face: hace falta una cuenta con acceso. `uv run imagine app` abre el navegador. En la terminal también están `uv run imagine cuatro-manos`, para escribir por turnos, y `uv run imagine generar "…"`. Los detalles están en [docs/correr-el-modelo.md](docs/correr-el-modelo.md).
 
 ## Documentación
 
@@ -149,7 +144,7 @@ El código sigue los principios de [CONSTITUTION.md](CONSTITUTION.md). Cada paqu
 | `ejecucion` | MLX: carga con caché única, hilo dedicado, muestreo, escritor, puntuación contra el corpus | `dominio`, `datos`, `persistencia` |
 | `entrenamiento` | GRPO, selección + SFT, LoRA | `ejecucion` y anteriores |
 | `integraciones.inspect` | Proveedor `mlx/` y tareas `imagine/niebla` e `imagine/prosa` | `ejecucion` y anteriores |
-| `interfaz` | Línea de comandos (fragmento e historia a cuatro manos) y app de Gradio | `ejecucion` y anteriores |
+| `interfaz` | El comando `imagine`: app de Gradio, historia a cuatro manos y fragmento en la terminal | `ejecucion` y anteriores |
 
 Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.5-0.8B-Base`) o una carpeta de adaptadores del proyecto (`runs/sft/epoca_1`). Los modelos entrenados de referencia (el RL y el final) están en `imagine/persistencia/catalogo.py`. Los presupuestos de generación (tokens y temperaturas) están en `imagine/dominio/escritura.py`.
 
@@ -159,9 +154,9 @@ Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.
 
 | Para… | Comando | Guía |
 |---|---|---|
-| Probar el modelo en el navegador | `uv run python -m imagine.interfaz.app` | [correr-el-modelo.md](docs/correr-el-modelo.md#app-de-gradio) |
-| Escribir a cuatro manos en la terminal | `uv run python -m imagine.interfaz.cuatro_manos` | [correr-el-modelo.md](docs/correr-el-modelo.md#a-cuatro-manos-en-la-terminal) |
-| Continuar un fragmento en la terminal | `uv run python -m imagine.interfaz.generar "…"` | [correr-el-modelo.md](docs/correr-el-modelo.md#línea-de-comandos) |
+| Probar el modelo en el navegador | `uv run imagine app` | [correr-el-modelo.md](docs/correr-el-modelo.md#la-app) |
+| Escribir a cuatro manos en la terminal | `uv run imagine cuatro-manos` | [correr-el-modelo.md](docs/correr-el-modelo.md#a-cuatro-manos) |
+| Continuar un fragmento en la terminal | `uv run imagine generar "…"` | [correr-el-modelo.md](docs/correr-el-modelo.md#un-fragmento) |
 | Armar el corpus | `uv run python -m imagine.datos.corpus` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#1-corpus) |
 | Entrenar con GRPO | `uv run python -m imagine.entrenamiento.grpo --salida runs/imagine300` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#2-rl-con-grpo-3-h) |
 | Selección + SFT | `uv run python -m imagine.entrenamiento.sft muestrear` / `entrenar` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#3-selección-y-ajuste-supervisado-1-h) |
