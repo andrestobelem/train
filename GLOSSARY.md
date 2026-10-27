@@ -15,7 +15,7 @@ El rol que imagina y después continúa la novela. Lo cumple un modelo.
 _Evitar_: asistente, policy
 
 **Fragmento**:
-El final del texto previo que ve el escritor: unas 180 palabras como mucho, marcado con «…» si se recortó.
+El final del texto previo que ve el escritor, marcado con «…» si se recortó.
 _Evitar_: contexto, prompt, pasaje
 
 **Imaginación**:
@@ -42,11 +42,11 @@ Una novela en español de dominio público de la que se sacan ejemplos.
 Los libros de entrenamiento más los libros de prueba.
 
 **Libro de entrenamiento**:
-Un libro cuyos ejemplos se usan para entrenar al escritor: *Don Quijote* y *Fortunata y Jacinta*.
+Un libro cuyos ejemplos se usan para entrenar al escritor.
 _Evitar_: train set
 
 **Libro de prueba**:
-Un libro que se reserva para evaluar y nunca se usa para entrenar: *Niebla*. Su autor no escribió ningún libro de entrenamiento, así que la prueba mide si el escritor generaliza a otro autor y no si recuerda un estilo ya visto.
+Un libro que se reserva para evaluar y nunca se usa para entrenar. Su autor no escribió ningún libro de entrenamiento, así que la prueba mide si el escritor generaliza a otro autor y no si recuerda un estilo ya visto.
 _Evitar_: test set, validación
 
 **Referencia**:
@@ -60,11 +60,15 @@ _Evitar_: fila, muestra, sample
 ### Cómo se juzga una imaginación
 
 **Formato válido**:
-Una imaginación cierra la etiqueta, no la vuelve a abrir y tiene al menos cinco palabras.
+Una imaginación cierra la etiqueta, no la vuelve a abrir y no está casi vacía.
 
 **Ganancia**:
-Cuánto mejora la imaginación la probabilidad de la referencia, medida por el modelo base congelado contra una imaginación vacía, en nats por token. Sólo existe si el formato es válido. Se escribe Δ.
+Cuánto mejora la imaginación la probabilidad de la referencia según el juez, frente a no imaginar nada. Sólo existe si el formato es válido. Se escribe Δ.
 _Evitar_: delta, mejora, score
+
+**Juez**:
+El modelo que mide la ganancia. Está congelado: no aprende de lo que juzga. Hoy es el modelo base.
+_Evitar_: modelo de referencia, evaluador
 
 **Imaginación que ayuda**:
 Una imaginación con ganancia positiva.
@@ -92,7 +96,7 @@ _Evitar_: muestra, época
 ### Cómo se entrena
 
 **Grupo**:
-Las imaginaciones que el escritor produce para un mismo fragmento y que se comparan entre sí para aprender. La de mayor recompensa es la **mejor imaginación** del grupo.
+Las imaginaciones que el escritor produce para un mismo fragmento y que se comparan entre sí para aprender. La de mayor recompensa es la **mejor imaginación** del grupo; si ninguna tiene formato válido, el grupo no tiene mejor imaginación.
 
 **Selección**:
 Quedarse, por cada fragmento, con la imaginación de mayor ganancia, siempre que ayude. Un fragmento sin imaginaciones que ayuden se descarta.
@@ -102,7 +106,7 @@ _Evitar_: rejection sampling, filtrado
 Un ejemplo junto con la imaginación elegida en la selección. Enseña a imaginar así y a continuar con la referencia.
 
 **Modelo base**:
-El modelo de lenguaje sin entrenar por este proyecto. También es el juez congelado que mide la ganancia.
+El modelo de lenguaje sin entrenar por este proyecto. Es el punto de partida del escritor y el ancla de la que no debe alejarse demasiado al aprender.
 _Evitar_: modelo de referencia (choca con *referencia*)
 
 **Modelo final**:
