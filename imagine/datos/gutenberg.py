@@ -1,22 +1,28 @@
 """Integración con Project Gutenberg: descarga y limpieza de los textos."""
 
 import re
+import ssl
 import urllib.request
 from pathlib import Path
 
 import truststore
 
-# Usa los certificados del sistema (necesario detrás de proxies corporativos).
-truststore.inject_into_ssl()
-
 URL = "https://www.gutenberg.org/cache/epub/{id}/pg{id}.txt"
+
+
+def _contexto_ssl() -> ssl.SSLContext:
+    """Usa los certificados del sistema (necesario detrás de proxies corporativos).
+
+    Es un contexto propio de la descarga: no modifica el SSL del resto del proceso.
+    """
+    return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
 
 def descargar(gid: int, destino: Path) -> str:
     """El texto del libro, descargado una sola vez y guardado en destino."""
     ruta = destino / f"{gid}.txt"
     if not ruta.exists():
-        with urllib.request.urlopen(URL.format(id=gid)) as r:
+        with urllib.request.urlopen(URL.format(id=gid), context=_contexto_ssl()) as r:
             ruta.write_bytes(r.read())
     return ruta.read_text(encoding="utf-8")
 
