@@ -15,6 +15,7 @@ from imagine.ejecucion.escritor import turno_del_escritor
 from imagine.persistencia import catalogo
 
 from .modelo import cargar
+from .plantillas import agregar_opcion
 
 # La imaginación se muestra tenue, sólo si la salida es una terminal.
 TENUE, NORMAL = ("\033[2m", "\033[0m") if sys.stdout.isatty() else ("", "")
@@ -37,6 +38,7 @@ def main():
     )
     ap.add_argument("--temperatura", type=float, default=TEMPERATURA_ESCRITURA)
     ap.add_argument("--max-tokens", type=int, default=160, help="largo máximo de cada turno")
+    agregar_opcion(ap)
     ap.add_argument("--ocultar-imaginacion", action="store_true", help="no mostrar lo imaginado")
     args = ap.parse_args()
 
@@ -46,7 +48,7 @@ def main():
     while (texto := leer_turno_del_lector()) is not None:
         historia = historia.agregar(Turno(Rol.LECTOR, texto))
         imaginacion, historia = turno_del_escritor(
-            model, tok, historia, args.temperatura, args.max_tokens
+            model, tok, historia, args.temperatura, args.max_tokens, args.plantilla
         )
         if not args.ocultar_imaginacion and imaginacion.texto.strip():
             print(f"\n{TENUE}<imagine> {imaginacion.texto.strip()} </imagine>{NORMAL}")

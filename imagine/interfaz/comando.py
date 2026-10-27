@@ -3,6 +3,7 @@
 uv run imagine app             # app de Gradio en el navegador
 uv run imagine cuatro-manos    # historia a cuatro manos en la terminal
 uv run imagine generar "…"     # imagina y continúa un fragmento
+uv run imagine plantillas      # las plantillas para presentarle la escena
 """
 
 import importlib
@@ -17,6 +18,10 @@ SUBCOMANDOS = {
         "escribe una historia por turnos en la terminal",
     ),
     "generar": ("imagine.interfaz.generar", "imagina y continúa un fragmento"),
+    "plantillas": (
+        "imagine.interfaz.plantillas",
+        "lista las plantillas para presentarle la escena",
+    ),
 }
 
 

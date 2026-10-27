@@ -12,6 +12,7 @@ from imagine.ejecucion.escritor import imaginar_y_continuar
 from imagine.persistencia import catalogo
 
 from .modelo import cargar
+from .plantillas import agregar_opcion
 
 
 def main():
@@ -24,6 +25,7 @@ def main():
     )
     ap.add_argument("--temperatura", type=float, default=TEMPERATURA_ESCRITURA)
     ap.add_argument("--max-tokens", type=int, default=TOKENS_CONTINUACION)
+    agregar_opcion(ap)
     ap.add_argument("--sin-imaginar", action="store_true", help="continuar sin imaginar antes")
     args = ap.parse_args()
 
@@ -32,7 +34,13 @@ def main():
         sys.exit("Falta el fragmento: pasalo entre comillas o por la entrada.")
     model, tok = cargar(args.modelo)
     imaginacion, continuacion = imaginar_y_continuar(
-        model, tok, fragmento, args.temperatura, args.max_tokens, not args.sin_imaginar
+        model,
+        tok,
+        fragmento,
+        args.temperatura,
+        args.max_tokens,
+        not args.sin_imaginar,
+        args.plantilla,
     )
     if imaginacion.texto.strip():
         print(f"<imagine> {imaginacion.texto.strip()} </imagine>\n")
