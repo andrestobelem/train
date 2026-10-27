@@ -65,6 +65,7 @@ def imaginar_y_continuar(
     model,
     tok,
     fragmento: str,
+    *,
     temperatura: float = TEMPERATURA_ESCRITURA,
     max_tokens: int = TOKENS_CONTINUACION,
     con_imaginacion: bool = True,
@@ -85,12 +86,18 @@ def turno_del_escritor(
     model,
     tok,
     historia: Historia,
+    *,
     temperatura: float = TEMPERATURA_ESCRITURA,
     max_tokens: int = TOKENS_CONTINUACION,
     plantilla: Plantilla = POR_DEFECTO,
 ) -> tuple[Imaginacion, Historia]:
     """El escritor imagina y continúa la historia desde su fragmento final."""
     imaginacion, continuacion = imaginar_y_continuar(
-        model, tok, historia.fragmento, temperatura, max_tokens, plantilla=plantilla
+        model,
+        tok,
+        historia.fragmento,
+        temperatura=temperatura,
+        max_tokens=max_tokens,
+        plantilla=plantilla,
     )
     return imaginacion, historia.agregar(Turno(Rol.ESCRITOR, continuacion))

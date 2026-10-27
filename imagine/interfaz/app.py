@@ -3,20 +3,25 @@
 - Fragmento: el escritor imagina y después continúa un fragmento.
 - A cuatro manos: el lector y el escritor se turnan para escribir una historia.
 
-Cada control explica qué hace al pasarle el mouse por encima (ver AYUDAS).
+Cada control explica qué hace al pasarle el mouse por encima (ver ayudas.py).
 
 uv run imagine app      # abre http://127.0.0.1:7860 en el navegador
 """
 
 import argparse
-import json
 import sys
 
 import gradio as gr
 
 from imagine.datos.archivos import TEST
 from imagine.datos.repositorio import ejemplos_de_prueba
-from imagine.dominio.escritura import TEMPERATURA_ESCRITURA, TOKENS_CONTINUACION
+from imagine.dominio.escritura import (
+    ABRE,
+    PALABRAS_DEL_FRAGMENTO,
+    TEMPERATURA_ESCRITURA,
+    TOKENS_CONTINUACION,
+    TOKENS_POR_TURNO,
+)
 from imagine.dominio.historia import Historia, Rol, Turno
 from imagine.dominio.plantillas import POR_DEFECTO, TODAS, buscar
 from imagine.ejecucion.escritor import imaginar_y_continuar, turno_del_escritor
@@ -24,6 +29,7 @@ from imagine.ejecucion.hilo import en_hilo_mlx
 from imagine.ejecucion.modelos import MODELO_BASE, cargar_por_nombre
 from imagine.persistencia import catalogo
 
+from .ayudas import js_que_las_muestra
 from .modelo import disponible, falta
 
 TODOS = {
@@ -35,43 +41,21 @@ TODOS = {
 MODELOS = {etiqueta: nombre for etiqueta, nombre in TODOS.items() if disponible(nombre)}
 PLANTILLAS = [(f"{p.nombre}: {p.descripcion}", p.nombre) for p in TODAS]
 
-# Lo que explica cada control al pasarle el mouse, por elem_id.
-AYUDAS = {
-    "fragmento": "El texto que el modelo va a continuar. Funciona mejor con prosa narrativa "
-    "en español. Si es largo, el modelo ve sólo las últimas 180 palabras.",
-    "modelo": "Entrenado: el de este proyecto. Sin entrenar: el modelo original, para "
-    "comparar. Sólo RL: la etapa intermedia del entrenamiento, si está en esta máquina.",
-    "plantilla": "Cómo se le presenta la escena: como una conversación, un sueño, una "
-    "lectura, una puesta en escena… Cambia qué tipo de cosas imagina. El modelo se entrenó "
-    "sólo con «conversación»; las demás son para explorar.",
-    "imaginar": "Apagado, el modelo continúa directamente, sin imaginar antes. Sirve para "
-    "comparar qué cambia la imaginación.",
-    "temperatura": "Cuánto se arriesga al elegir cada palabra. En 0 elige siempre la más "
-    "probable y tiende a repetirse. Alrededor de 0,7 hay equilibrio. Por encima de 1 "
-    "sorprende más, pero pierde coherencia.",
-    "largo": "Largo máximo de lo que escribe, en tokens: pedazos de palabra. 100 tokens "
-    "son unas 65 palabras. Puede terminar antes si cede el turno.",
-    "continuar": "Imagina y después continúa el fragmento. Tarda unos segundos.",
-    "imaginacion": "La nota que el modelo escribió para sí mismo antes de continuar. No "
-    "forma parte del texto.",
-    "continuacion": "Lo que el modelo escribió después de imaginar.",
-}
-# Cada pestaña tiene sus propios controles: los de a cuatro manos llevan el sufijo -cm.
-AYUDAS |= {f"{k}-cm": AYUDAS[k] for k in ["modelo", "plantilla", "temperatura", "largo"]}
-
-# Gradio no tiene tooltips: se usa el title de cada control, también para los que
-# aparecen después (otra pestaña, el acordeón de opciones).
-PONER_AYUDAS = f"""() => {{
-    const ayudas = {json.dumps(AYUDAS, ensure_ascii=False)};
-    const poner = () => {{
-        for (const [id, texto] of Object.entries(ayudas)) {{
-            const el = document.getElementById(id);
-            if (el && el.title !== texto) el.title = texto;
-        }}
-    }};
-    poner();
-    new MutationObserver(poner).observe(document.body, {{childList: true, subtree: true}});
-}}"""
+# Cada pestaña tiene sus propios controles; los de a cuatro manos llevan el sufijo -cm.
+AYUDAS_POR_ELEMENTO = {
+    clave: clave
+    for clave in [
+        "fragmento",
+        "modelo",
+        "plantilla",
+        "imaginar",
+        "temperatura",
+        "largo",
+        "continuar",
+        "imaginacion",
+        "continuacion",
+    ]
+} | {f"{clave}-cm": clave for clave in ["modelo", "plantilla", "temperatura", "largo"]}
 
 
 def responder(
@@ -83,7 +67,13 @@ def responder(
     def correr():
         model, tok = cargar_por_nombre(MODELOS[etiqueta])
         imaginacion, continuacion = imaginar_y_continuar(
-            model, tok, fragmento, temperatura, largo, imaginar, buscar(plantilla)
+            model,
+            tok,
+            fragmento,
+            temperatura=temperatura,
+            max_tokens=largo,
+            con_imaginacion=imaginar,
+            plantilla=buscar(plantilla),
         )
         return imaginacion.texto.strip(), continuacion
 
@@ -92,7 +82,7 @@ def responder(
 
 
 # Título de los mensajes del chat que muestran la imaginación: no son parte de la historia.
-TITULO_IMAGINACION = "<imagine>"
+TITULO_IMAGINACION = ABRE
 
 
 def _texto(mensaje: dict) -> str:
@@ -120,7 +110,14 @@ def escribir_a_cuatro_manos(mensaje, historial, etiqueta, plantilla, temperatura
 
     def correr():
         model, tok = cargar_por_nombre(MODELOS[etiqueta])
-        return turno_del_escritor(model, tok, historia, temperatura, largo, buscar(plantilla))
+        return turno_del_escritor(
+            model,
+            tok,
+            historia,
+            temperatura=temperatura,
+            max_tokens=largo,
+            plantilla=buscar(plantilla),
+        )
 
     imaginacion, historia = en_hilo_mlx(correr)
     return [
@@ -180,7 +177,7 @@ def construir() -> gr.Blocks:
                     largo = control_largo("largo", TOKENS_CONTINUACION, "Largo de la continuación")
                     boton = gr.Button("Continuar", variant="primary", elem_id="continuar")
                 with gr.Column():
-                    imaginacion = gr.Textbox(label="<imagine>", lines=5, elem_id="imaginacion")
+                    imaginacion = gr.Textbox(label=ABRE, lines=5, elem_id="imaginacion")
                     continuacion = gr.Textbox(
                         label="Continuación", lines=12, elem_id="continuacion"
                     )
@@ -194,7 +191,7 @@ def construir() -> gr.Blocks:
         with gr.Tab("A cuatro manos"):
             gr.Markdown(
                 "Escribí un párrafo y el escritor sigue la historia; después te toca a vos. "
-                "El escritor ve las últimas ~180 palabras."
+                f"El escritor ve las últimas ~{PALABRAS_DEL_FRAGMENTO} palabras."
             )
             gr.ChatInterface(
                 escribir_a_cuatro_manos,
@@ -202,7 +199,7 @@ def construir() -> gr.Blocks:
                     control_modelo("modelo-cm"),
                     control_plantilla("plantilla-cm"),
                     control_temperatura("temperatura-cm"),
-                    control_largo("largo-cm", 160, "Largo de cada turno"),
+                    control_largo("largo-cm", TOKENS_POR_TURNO, "Largo de cada turno"),
                 ],
                 additional_inputs_accordion="Opciones",
             )
@@ -217,7 +214,11 @@ def main():
     if aviso := falta(catalogo.FINAL):
         print(f"{aviso}\n\nMientras tanto, la app arranca sin él.\n", file=sys.stderr)
     try:
-        construir().launch(server_port=args.puerto, inbrowser=not args.no_abrir, js=PONER_AYUDAS)
+        construir().launch(
+            server_port=args.puerto,
+            inbrowser=not args.no_abrir,
+            js=js_que_las_muestra(AYUDAS_POR_ELEMENTO),
+        )
     except OSError:
         sys.exit(
             f"El puerto {args.puerto} está ocupado: seguramente la app ya está abierta en "

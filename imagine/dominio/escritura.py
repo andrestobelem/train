@@ -24,6 +24,8 @@ TEMPERATURA_MUESTREO = 0.8
 # Temperatura y largo por defecto al escribir para un lector (más conservador).
 TEMPERATURA_ESCRITURA = 0.7
 TOKENS_CONTINUACION = 200
+# En una historia a cuatro manos, cada turno es más corto.
+TOKENS_POR_TURNO = 160
 
 # Con la plantilla por defecto: el turno siguiente marca el final de la continuación.
 FIN_TURNO = POR_DEFECTO.fin_turno

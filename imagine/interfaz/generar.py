@@ -7,12 +7,11 @@ uv run imagine generar < fragmento.txt
 import argparse
 import sys
 
-from imagine.dominio.escritura import TEMPERATURA_ESCRITURA, TOKENS_CONTINUACION
+from imagine.dominio.escritura import ABRE, CIERRA, TOKENS_CONTINUACION
 from imagine.ejecucion.escritor import imaginar_y_continuar
-from imagine.persistencia import catalogo
 
 from .modelo import cargar
-from .plantillas import agregar_opcion
+from .opciones import agregar_opciones_del_escritor
 
 
 def main():
@@ -20,12 +19,7 @@ def main():
     ap.add_argument(
         "fragmento", nargs="?", help="el texto a continuar; si falta, se lee de la entrada"
     )
-    ap.add_argument(
-        "--modelo", default=catalogo.FINAL, help="repo de Hugging Face o carpeta de adaptadores"
-    )
-    ap.add_argument("--temperatura", type=float, default=TEMPERATURA_ESCRITURA)
-    ap.add_argument("--max-tokens", type=int, default=TOKENS_CONTINUACION)
-    agregar_opcion(ap)
+    agregar_opciones_del_escritor(ap, largo=TOKENS_CONTINUACION)
     ap.add_argument("--sin-imaginar", action="store_true", help="continuar sin imaginar antes")
     args = ap.parse_args()
 
@@ -37,13 +31,13 @@ def main():
         model,
         tok,
         fragmento,
-        args.temperatura,
-        args.max_tokens,
-        not args.sin_imaginar,
-        args.plantilla,
+        temperatura=args.temperatura,
+        max_tokens=args.max_tokens,
+        con_imaginacion=not args.sin_imaginar,
+        plantilla=args.plantilla,
     )
     if imaginacion.texto.strip():
-        print(f"<imagine> {imaginacion.texto.strip()} </imagine>\n")
+        print(f"{ABRE} {imaginacion.texto.strip()} {CIERRA}\n")
     print(continuacion)
 
 
