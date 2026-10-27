@@ -4,9 +4,10 @@ from inspect_ai.dataset import MemoryDataset, Sample
 
 from imagine.datos.repositorio import ejemplos_de_prueba
 from imagine.dominio.escritura import prompt
+from imagine.dominio.plantillas import Plantilla
 
 
-def niebla(n: int) -> MemoryDataset:
+def niebla(n: int, plantilla: Plantilla) -> MemoryDataset:
     """Ejemplos del libro de prueba (*Niebla*).
 
     El input es el prompt completo (termina abriendo <imagine>); el target es la
@@ -16,7 +17,7 @@ def niebla(n: int) -> MemoryDataset:
         [
             Sample(
                 id=i,
-                input=prompt(ejemplo.fragmento),
+                input=prompt(ejemplo.fragmento, plantilla),
                 target=ejemplo.referencia,
                 metadata={"fragmento": ejemplo.fragmento},
             )

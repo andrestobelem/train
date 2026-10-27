@@ -6,6 +6,7 @@ from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState, generate
 
 from imagine.dominio.escritura import CIERRA, TEMPERATURA_MUESTREO, TOKENS_IMAGINACION
+from imagine.dominio.plantillas import POR_DEFECTO, buscar
 from imagine.dominio.recompensa import ayuda, recompensa
 from imagine.ejecucion import puntuacion
 from imagine.ejecucion.hilo import en_hilo_mlx, en_hilo_mlx_async
@@ -53,9 +54,10 @@ def niebla(
     intentos: int = 4,
     temperatura: float = TEMPERATURA_MUESTREO,
     max_tokens: int = TOKENS_IMAGINACION,
+    plantilla: str = POR_DEFECTO.nombre,
 ):
     return Task(
-        dataset=dataset.niebla(n),
+        dataset=dataset.niebla(n, buscar(plantilla)),
         solver=generate(),
         scorer=corpus(),
         epochs=Epochs(intentos, "media_valida"),

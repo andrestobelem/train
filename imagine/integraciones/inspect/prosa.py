@@ -18,13 +18,13 @@ from sacrebleu.metrics import CHRF
 from imagine.dominio import prosa as reglas
 from imagine.dominio.escritura import (
     CIERRA,
-    FINES_CONTINUACION,
     SIN_IMAGINACION,
     TEMPERATURA_MUESTREO,
     TOKENS_IMAGINACION,
     cortar_continuacion,
     prompt_continuacion,
 )
+from imagine.dominio.plantillas import POR_DEFECTO, Plantilla, buscar
 from imagine.ejecucion import puntuacion
 from imagine.ejecucion.hilo import en_hilo_mlx, en_hilo_mlx_async
 from imagine.ejecucion.modelos import cargar_por_nombre
@@ -46,7 +46,9 @@ _CHRF = CHRF()
 
 
 @solver
-def imaginar_y_continuar(imaginar: bool, max_tokens: int, temperatura: float) -> Solver:
+def imaginar_y_continuar(
+    imaginar: bool, max_tokens: int, temperatura: float, plantilla: Plantilla
+) -> Solver:
     async def resolver(state: TaskState, generate: Generate) -> TaskState:
         fragmento = state.metadata["fragmento"]
         imaginacion = SIN_IMAGINACION
@@ -58,15 +60,15 @@ def imaginar_y_continuar(imaginar: bool, max_tokens: int, temperatura: float) ->
         state.store.set("formato", imaginacion.formato_valido if imaginar else True)
 
         salida = await get_model().generate(
-            prompt_continuacion(fragmento, imaginacion),
+            prompt_continuacion(fragmento, imaginacion, plantilla),
             config=GenerateConfig(
                 max_tokens=max_tokens,
                 temperature=temperatura,
-                stop_seqs=list(FINES_CONTINUACION),
+                stop_seqs=list(plantilla.fines),
             ),
         )
         state.output = salida
-        state.store.set("continuacion", cortar_continuacion(salida.completion))
+        state.store.set("continuacion", cortar_continuacion(salida.completion, plantilla))
         return state
 
     return resolver
@@ -108,10 +110,12 @@ def prosa(
     temperatura: float = TEMPERATURA_MUESTREO,
     max_tokens_imaginar: int = TOKENS_IMAGINACION,
     max_tokens_continuar: int = 128,
+    plantilla: str = POR_DEFECTO.nombre,
 ):
+    elegida = buscar(plantilla)
     return Task(
-        dataset=dataset.niebla(n),
-        solver=imaginar_y_continuar(imaginar, max_tokens_continuar, temperatura),
+        dataset=dataset.niebla(n, elegida),
+        solver=imaginar_y_continuar(imaginar, max_tokens_continuar, temperatura, elegida),
         scorer=calidad(),
         epochs=Epochs(intentos, "media_valida"),
         config=GenerateConfig(
