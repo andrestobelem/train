@@ -1,6 +1,6 @@
 # Entrenar y evaluar
 
-Cómo reproducir el modelo final desde cero y evaluarlo. Los tiempos son los de una M2 Max con 64 GB. Para sólo usar un modelo ya entrenado, ver [correr-el-modelo.md](correr-el-modelo.md).
+Cómo reproducir el modelo final desde cero y evaluarlo. Los tiempos son los de una M2 Max con 64 GB. Para sólo usar un modelo ya entrenado, ver [correr-el-modelo.md](correr-el-modelo.md). Si sólo querés seguir en otra computadora lo que ya está entrenado, no hace falta repetir nada: ver [Lo que no está en git](../README.md#lo-que-no-está-en-git).
 
 ## 1. Corpus
 
