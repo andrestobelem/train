@@ -1,7 +1,7 @@
 """Selección + ajuste supervisado, la etapa que sigue al RL en DeepSeek-R1.
 
 1. muestrear: por cada fragmento de entrenamiento, el escritor de RL imagina G veces y
-   la selección se queda con la imaginación de mayor ganancia, si ayuda (ver CONTEXT.md).
+   la selección se queda con la imaginación de mayor ganancia, si ayuda (ver GLOSSARY.md).
 2. entrenar: ajuste supervisado sobre fragmento → imaginación elegida → referencia. Así
    el escritor aprende a continuar como el autor después de imaginar, algo que el RL
    nunca le enseñó: sólo premiaba la imaginación.

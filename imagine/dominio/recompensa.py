@@ -1,4 +1,4 @@
-"""Cómo se juzga una imaginación: ganancia y recompensa (ver CONTEXT.md y ADR 0001).
+"""Cómo se juzga una imaginación: ganancia y recompensa (ver GLOSSARY.md y ADR 0001).
 
 DeepSeek-R1 premia exactitud (¿la respuesta es correcta?) y formato (¿razonó entre
 <think>?). Acá no hay una respuesta correcta, pero sabemos qué escribió el autor: la

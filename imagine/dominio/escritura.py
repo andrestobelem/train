@@ -1,7 +1,7 @@
 """La escena de escritura: plantilla, etiquetas, imaginación y dónde termina cada turno.
 
 Un lector comparte un fragmento; el escritor imagina entre <imagine> </imagine> y
-después continúa la novela. Los términos están definidos en CONTEXT.md.
+después continúa la novela. Los términos están definidos en GLOSSARY.md.
 """
 
 from dataclasses import dataclass

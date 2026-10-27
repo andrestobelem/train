@@ -82,7 +82,7 @@ Prosa de la continuación (tarea `imagine/prosa`, 40 fragmentos × 2 muestras):
 
 ## Lenguaje del dominio
 
-El glosario del proyecto está en [CONTEXT.md](CONTEXT.md): fragmento, imaginación, continuación, referencia, ganancia, recompensa, selección, etc. El código usa esos mismos términos. Las decisiones difíciles de revertir están en [docs/adr/](docs/adr/):
+El glosario del proyecto está en [GLOSSARY.md](GLOSSARY.md): fragmento, imaginación, continuación, referencia, ganancia, recompensa, selección, etc. El código usa esos mismos términos. Las decisiones difíciles de revertir están en [docs/adr/](docs/adr/):
 
 - [0001](docs/adr/0001-recompensa-por-ganancia-con-modelo-base.md): la recompensa es la ganancia medida por el modelo base congelado.
 - [0002](docs/adr/0002-plantilla-con-un-ejemplo.md): la plantilla incluye un ejemplo, a diferencia de R1-Zero.
