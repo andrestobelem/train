@@ -15,7 +15,8 @@ import math
 def recompensa(delta: float | None) -> float:
     """Sin formato válido (Δ = None) → 0. Válida → 1 + tanh(4·Δ), con Δ en nats/token.
 
-    Así una imaginación con formato correcto siempre supera a una sin formato, y entre
-    las válidas manda cuánto ayudan a predecir al autor.
+    Una imaginación con formato correcto nunca vale menos que una sin formato, y con
+    Δ realistas (|Δ| < 1; en la práctica ronda ±0,1) vale estrictamente más. Entre las
+    válidas manda cuánto ayudan a predecir al autor.
     """
     return 0.0 if delta is None else 1.0 + math.tanh(4 * delta)
