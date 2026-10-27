@@ -134,7 +134,7 @@ El código sigue los principios de [CONSTITUTION.md](CONSTITUTION.md). Cada paqu
 | `ejecucion` | MLX: carga con caché única, hilo dedicado, muestreo, escritor, puntuación contra el corpus | `dominio`, `datos`, `persistencia` |
 | `entrenamiento` | GRPO, selección + SFT, LoRA | `ejecucion` y anteriores |
 | `integraciones.inspect` | Proveedor `mlx/` y tareas `imagine/niebla` e `imagine/prosa` | `ejecucion` y anteriores |
-| `interfaz` | Línea de comandos y app de Gradio (fragmento e historia a cuatro manos) | `ejecucion` y anteriores |
+| `interfaz` | Línea de comandos (fragmento e historia a cuatro manos) y app de Gradio | `ejecucion` y anteriores |
 
 Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.5-0.8B-Base`) o una carpeta de adaptadores del proyecto (`runs/sft/epoca_1`). Los modelos entrenados de referencia (el RL y el final) están en `imagine/persistencia/catalogo.py`. Los presupuestos de generación (tokens y temperaturas) están en `imagine/dominio/escritura.py`.
 
@@ -145,6 +145,7 @@ Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.
 | Para… | Comando | Guía |
 |---|---|---|
 | Probar el modelo en el navegador | `uv run python -m imagine.interfaz.app` | [correr-el-modelo.md](docs/correr-el-modelo.md#app-de-gradio) |
+| Escribir a cuatro manos en la terminal | `uv run python -m imagine.interfaz.cuatro_manos` | [correr-el-modelo.md](docs/correr-el-modelo.md#a-cuatro-manos-en-la-terminal) |
 | Continuar un fragmento en la terminal | `uv run python -m imagine.interfaz.generar "…"` | [correr-el-modelo.md](docs/correr-el-modelo.md#línea-de-comandos) |
 | Armar el corpus | `uv run python -m imagine.datos.corpus` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#1-corpus) |
 | Entrenar con GRPO | `uv run python -m imagine.entrenamiento.grpo --salida runs/imagine300` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#2-rl-con-grpo-3-h) |

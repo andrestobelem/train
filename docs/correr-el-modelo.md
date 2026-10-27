@@ -70,6 +70,17 @@ uv run python -m imagine.interfaz.generar "Augusto salió a la calle sin saber a
 
 Cada corrida carga el modelo de nuevo (~2 s). Para probar muchos fragmentos conviene la app.
 
+## A cuatro manos en la terminal
+
+```bash
+uv run python -m imagine.interfaz.cuatro_manos
+```
+
+Es la historia a cuatro manos de la app, pero en la terminal. Escribís un párrafo como lector y apretás Enter; el escritor imagina (en gris) y sigue la historia, y vuelve a ser tu turno. Una línea vacía pasa el turno, así que el escritor sigue solo. `/fin` o Ctrl-D terminan. Acepta `--modelo`, `--temperatura`, `--max-tokens` (160 por turno) y `--sin-imaginacion` para no mostrar lo imaginado.
+
+> [!NOTE]
+> No sirve `mlx_lm chat`: envuelve cada mensaje en la plantilla de chat de Qwen, y el escritor se entrenó con su propia plantilla de lector y escritor. Con la plantilla de chat, el modelo comenta el texto en lugar de imaginar y continuar.
+
 ## App de Gradio
 
 ```bash
