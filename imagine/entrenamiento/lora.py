@@ -14,9 +14,9 @@ def entrenar_solo_lora(model) -> None:
     """Para seguir entrenando adaptadores ya cargados: sólo lora_a y lora_b."""
     model.freeze()
     model.apply_to_modules(
-        lambda _, m: m.unfreeze(keys=["lora_a", "lora_b"], strict=False)
-        if hasattr(m, "lora_a")
-        else None
+        lambda _, m: (
+            m.unfreeze(keys=["lora_a", "lora_b"], strict=False) if hasattr(m, "lora_a") else None
+        )
     )
 
 

@@ -1,7 +1,7 @@
 """Tablas de resultados a partir de los logs de Inspect, una por tarea.
 
-    uv run python evals/resumen.py logs/niebla
-    uv run python evals/resumen.py logs/prosa
+uv run python evals/resumen.py logs/niebla
+uv run python evals/resumen.py logs/prosa
 """
 
 import sys
