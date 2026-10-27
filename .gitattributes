@@ -1,0 +1,4 @@
+# Modelos, datos y logs de evaluación van por Git LFS: pesan y no se revisan como código.
+data/** filter=lfs diff=lfs merge=lfs -text
+runs/** filter=lfs diff=lfs merge=lfs -text
+logs/** filter=lfs diff=lfs merge=lfs -text

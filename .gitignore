@@ -219,7 +219,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Proyecto imagine
-data/
-runs/
-logs/
+# Proyecto imagine: data/, runs/ y logs/ van por Git LFS (ver .gitattributes).
+# Archivo de avance del muestreo de la selección: es local.
+data/*.progreso
