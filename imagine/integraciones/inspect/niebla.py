@@ -50,7 +50,7 @@ def corpus() -> Scorer:
 @task
 def niebla(
     n: int = 40,
-    muestras: int = 4,
+    intentos: int = 4,
     temperatura: float = TEMPERATURA_MUESTREO,
     max_tokens: int = TOKENS_IMAGINACION,
 ):
@@ -58,6 +58,6 @@ def niebla(
         dataset=dataset.niebla(n),
         solver=generate(),
         scorer=corpus(),
-        epochs=Epochs(muestras, "media_valida"),
+        epochs=Epochs(intentos, "media_valida"),
         config=GenerateConfig(temperature=temperatura, max_tokens=max_tokens, stop_seqs=[CIERRA]),
     )

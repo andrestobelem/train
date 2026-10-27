@@ -10,9 +10,9 @@ def test_repeticion_y_distintos():
 def test_textos_cortos_no_rompen():
     assert prosa.repeticion("") == 0.0
     assert prosa.distintos("una") == 0.0
-    assert prosa.ajenos("") == 0.0
+    assert prosa.letras_ajenas("") == 0.0
 
 
-def test_ajenos_cuenta_letras_fuera_del_alfabeto_latino():
-    assert prosa.ajenos("Ñandú, pingüino y cigüeña") == 0.0
-    assert prosa.ajenos("abαβ") == 0.5
+def test_letras_ajenas_cuenta_letras_fuera_del_alfabeto_latino():
+    assert prosa.letras_ajenas("Ñandú, pingüino y cigüeña") == 0.0
+    assert prosa.letras_ajenas("abαβ") == 0.5

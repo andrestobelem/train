@@ -69,10 +69,26 @@ Una imaginación con ganancia positiva.
 El valor que recibe una imaginación al entrenar: cero sin formato válido; con formato válido, crece con la ganancia.
 _Evitar_: reward, puntaje
 
+### Cómo se evalúa la continuación
+
+**Fluidez**:
+Qué tan esperable le resulta al modelo base la continuación, dado sólo el fragmento y no la imaginación. Por eso una continuación que sigue fielmente a la imaginación puede ser buena y poco fluida.
+
+**Parecido con el autor**:
+Cuánto se parece la continuación a la referencia, letra por letra en secuencias cortas. No mide si la escena es la misma, sólo si se escribe parecido.
+_Evitar_: chrF, similitud, score
+
+**Letras ajenas**:
+Las letras de la continuación que no son del alfabeto latino, como griego o chino: un síntoma de que el escritor se desvió del español.
+
+**Intento**:
+Cada vez que, al evaluar, el escritor imagina para el mismo fragmento.
+_Evitar_: muestra, época
+
 ### Cómo se entrena
 
 **Grupo**:
-Las imaginaciones que el escritor produce para un mismo fragmento y que se comparan entre sí para aprender.
+Las imaginaciones que el escritor produce para un mismo fragmento y que se comparan entre sí para aprender. La de mayor recompensa es la **mejor imaginación** del grupo.
 
 **Selección**:
 Quedarse, por cada fragmento, con la imaginación de mayor ganancia, siempre que ayude. Un fragmento sin imaginaciones que ayuden se descarta.

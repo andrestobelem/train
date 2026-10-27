@@ -3,10 +3,10 @@
 `imagine/niebla` mide si la imaginación anticipa la referencia; esta tarea mide lo que el
 lector efectivamente lee. Métricas (todas por reglas, sin juez):
 
-- repeticion, distintos, ajenos, palabras: ver `imagine.dominio.prosa`.
+- repeticion, distintos, letras_ajenas, palabras: ver `imagine.dominio.prosa`.
 - fluidez: log-prob media por token de la continuación según el modelo base, dado el
   fragmento sin la imaginación (penaliza lo que sigue a la imaginación y no al fragmento).
-- chrf: similitud de n-gramas de caracteres con lo que escribió el autor (0 a 1).
+- parecido (con el autor): chrF contra la referencia, de 0 a 1 (ver GLOSSARY.md).
 """
 
 from inspect_ai import Epochs, Task, task
@@ -33,7 +33,15 @@ from . import dataset
 from .metricas import NAN, media_valida
 from .proveedor import imaginacion_de
 
-METRICAS = ["formato", "repeticion", "distintos", "ajenos", "fluidez", "chrf", "palabras"]
+METRICAS = [
+    "formato",
+    "repeticion",
+    "distintos",
+    "letras_ajenas",
+    "fluidez",
+    "parecido",
+    "palabras",
+]
 _CHRF = CHRF()
 
 
@@ -80,9 +88,9 @@ def calidad() -> Scorer:
                 "formato": float(state.store.get("formato")),
                 "repeticion": reglas.repeticion(texto),
                 "distintos": reglas.distintos(texto),
-                "ajenos": reglas.ajenos(texto),
+                "letras_ajenas": reglas.letras_ajenas(texto),
                 "fluidez": await en_hilo_mlx_async(fluidez),
-                "chrf": _CHRF.sentence_score(texto, [target.text]).score / 100,
+                "parecido": _CHRF.sentence_score(texto, [target.text]).score / 100,
                 "palabras": float(reglas.palabras(texto)),
             },
             answer=texto,
@@ -95,7 +103,7 @@ def calidad() -> Scorer:
 @task
 def prosa(
     n: int = 40,
-    muestras: int = 2,
+    intentos: int = 2,
     imaginar: bool = True,
     temperatura: float = TEMPERATURA_MUESTREO,
     max_tokens_imaginar: int = TOKENS_IMAGINACION,
@@ -105,7 +113,7 @@ def prosa(
         dataset=dataset.niebla(n),
         solver=imaginar_y_continuar(imaginar, max_tokens_continuar, temperatura),
         scorer=calidad(),
-        epochs=Epochs(muestras, "media_valida"),
+        epochs=Epochs(intentos, "media_valida"),
         config=GenerateConfig(
             temperature=temperatura, max_tokens=max_tokens_imaginar, stop_seqs=[CIERRA]
         ),

@@ -3,6 +3,6 @@
 from inspect_flow import FlowOptions, FlowSpec
 
 FlowSpec(
-    # MLX usa una sola GPU: de a una tarea y de a una muestra.
+    # MLX usa una sola GPU: de a una tarea y de a un intento.
     options=FlowOptions(max_tasks=1, max_samples=1, display="plain", log_dir_allow_dirty=True),
 )

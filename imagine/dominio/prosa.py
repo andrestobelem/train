@@ -19,7 +19,7 @@ def distintos(texto: str, n: int = 2) -> float:
     return len(set(ngramas)) / len(ngramas) if ngramas else 0.0
 
 
-def ajenos(texto: str) -> float:
+def letras_ajenas(texto: str) -> float:
     """Fracción de letras fuera del alfabeto latino, p. ej. griego o CJK (menos es mejor)."""
     letras = [c for c in texto if c.isalpha()]
     if not letras:

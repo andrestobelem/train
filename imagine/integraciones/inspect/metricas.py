@@ -1,6 +1,6 @@
 """Métrica y reductor de Inspect compartidos por las tareas del proyecto.
 
-Algunos valores no existen para todas las muestras (por ejemplo Δ cuando el formato
+Algunos valores no existen para todos los intentos (por ejemplo Δ cuando el formato
 es inválido); se marcan con NaN y se ignoran al promediar.
 """
 
@@ -18,7 +18,7 @@ def media_sin_nan(valores) -> float:
 
 @metric
 def media_valida() -> Metric:
-    """Media que ignora las muestras sin valor."""
+    """Media que ignora los intentos sin valor."""
 
     def calcular(scores: list[SampleScore]) -> float:
         return media_sin_nan([s.score.as_float() for s in scores])

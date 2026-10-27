@@ -41,7 +41,7 @@ class ConfigGRPO:
     salida: str = catalogo.SALIDA_GRPO
     pasos: int = 300
     prompts_por_paso: int = 4
-    grupo: int = 8  # G: muestras por prompt
+    grupo: int = 8  # G: imaginaciones por fragmento
     micro_lote: int = 2  # completaciones por backward
     max_tokens: int = TOKENS_IMAGINACION
     temperatura: float = TEMPERATURA_MUESTREO
@@ -84,7 +84,7 @@ class Grupo:
     completaciones: list[list[int]]
     recompensas: list[float]
     ganancias: list[Ganancia]
-    muestra: str  # la imaginación mejor puntuada, para el log
+    mejor_imaginacion: str  # la de mayor recompensa, para el log
 
 
 def muestrear_grupo(model, juez, tok, ejemplo: Ejemplo, conf: ConfigGRPO) -> Grupo:
@@ -148,7 +148,7 @@ def paso_grupo(model, juez, tok, ejemplo: Ejemplo, conf: ConfigGRPO):
         "formato": sum(x is not None for x in g) / len(g),
         "ganancia": [x for x in g if x is not None],
         "largo": sum(len(c) for c in comps) / len(comps),
-        "muestra": grupo.muestra,
+        "mejor_imaginacion": grupo.mejor_imaginacion,
     }
     ventajas = ventajas_de_grupo(r)
     if ventajas is None:
@@ -201,7 +201,7 @@ def entrenar(conf: ConfigGRPO) -> None:
             "grupos_con_señal": n_grads,
             "seg": round(time.time() - t0, 1),
             "mem_gb": round(mx.get_peak_memory() / 1e9, 1),
-            "muestra": ms[0]["muestra"],
+            "mejor_imaginacion": ms[0]["mejor_imaginacion"],
         }
         agregar_jsonl(log, fila)
         d = f"{fila['ganancia']:+.4f}" if fila["ganancia"] is not None else "  —   "
