@@ -4,26 +4,25 @@
     uv run inspect view --log-dir logs/prosa
 
 Compara el modelo base escribiendo directamente, el modelo base imaginando antes y
-los adaptadores listados en IMAGINE_MODELOS (separados por comas).
+los modelos listados en IMAGINE_MODELOS (separados por comas; por defecto, el de RL y
+el final del catálogo).
 """
 
 import os
 
-from inspect_flow import FlowOptions, FlowSpec, FlowTask
+from inspect_flow import FlowSpec, FlowTask
+
+from imagine.ejecucion.modelos import MODELO_BASE
+from imagine.persistencia import catalogo
 
 TAREA = "imagine/prosa"
-BASE = "mlx/Qwen/Qwen3.5-0.8B-Base"
-ENTRENADOS = os.environ.get(
-    "IMAGINE_MODELOS", "runs/imagine300/paso_00150,runs/imagine300/paso_00300"
-).split(",")
+entrenados = os.environ.get("IMAGINE_MODELOS", f"{catalogo.RL},{catalogo.FINAL}").split(",")
 
 FlowSpec(
     log_dir="../logs/prosa",
-    # MLX usa una sola GPU: de a una tarea y de a una muestra.
-    options=FlowOptions(max_tasks=1, max_samples=1, display="plain", log_dir_allow_dirty=True),
     tasks=[
-        FlowTask(name=TAREA, model=BASE, args={"imaginar": False}),
-        FlowTask(name=TAREA, model=BASE, args={"imaginar": True}),
+        FlowTask(name=TAREA, model=f"mlx/{MODELO_BASE}", args={"imaginar": False}),
+        FlowTask(name=TAREA, model=f"mlx/{MODELO_BASE}", args={"imaginar": True}),
     ]
-    + [FlowTask(name=TAREA, model=f"mlx/{m.strip()}") for m in ENTRENADOS if m.strip()],
+    + [FlowTask(name=TAREA, model=f"mlx/{m.strip()}") for m in entrenados if m.strip()],
 )
