@@ -1,6 +1,6 @@
 # Entrenar y evaluar
 
-Cómo reproducir el modelo final desde cero y evaluarlo. Los tiempos son los de una M2 Max con 64 GB. Para sólo usar un modelo ya entrenado, ver [correr-el-modelo.md](correr-el-modelo.md). Todo lo que producen estos pasos ya viene con el repo por Git LFS (ver [Modelos, datos y resultados](../README.md#modelos-datos-y-resultados)): sólo hace falta repetirlos para cambiar algo.
+Cómo reproducir el modelo final desde cero y evaluarlo. Los tiempos son los de una M2 Max con 64 GB. Para sólo usar un modelo ya entrenado, ver [correr-el-modelo.md](correr-el-modelo.md). Todo lo que producen estos pasos ya viene con el repo por Git LFS (ver [Qué trae el repo](../README.md#qué-trae-el-repo)): sólo hace falta repetirlos para cambiar algo.
 
 ## 1. Corpus
 

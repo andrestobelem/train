@@ -1,16 +1,122 @@
 # imagine
 
+> **[Ver ejemplos de lo que escribe →](docs/ejemplos.md)** Una selección para leer sin instalar nada y sin saber de tecnología.
+
 ## En pocas palabras
 
 Enseñamos a una inteligencia artificial chica a **imaginar antes de escribir**. Le damos un pedazo de una novela en español y, antes de seguirla, el modelo anota en pocas líneas qué sienten los personajes y qué va a pasar. Recién después escribe el párrafo siguiente.
 
+**Con qué aprendió.** Con dos novelas clásicas en español, de dominio público y bajadas de Project Gutenberg: [*Don Quijote*](https://www.gutenberg.org/ebooks/2000), de Miguel de Cervantes, y [*Fortunata y Jacinta*](https://www.gutenberg.org/ebooks/17013), de Benito Pérez Galdós. Para probarlo usamos una tercera que nunca vio, de un autor que tampoco estaba en el entrenamiento: [*Niebla*](https://www.gutenberg.org/ebooks/49836), de Miguel de Unamuno.
+
 ¿Cómo aprende a imaginar bien? Comparamos lo que imaginó con lo que el autor escribió de verdad, que el modelo nunca vio. Si lo imaginado ayuda a anticipar lo que pasa en la novela, el modelo recibe un premio, y así aprende a imaginar mejor. Es la misma idea con la que DeepSeek-R1 aprendió a «pensar» antes de resolver problemas de matemática, aplicada a la literatura.
 
-**El resultado.** Antes de entrenarlo, lo que imaginaba lo despistaba más de lo que lo ayudaba. Después, en un libro que nunca había leído (*Niebla*, de Unamuno), imagina cosas que sí ayudan a anticipar lo que escribió el autor en tres de cada cuatro casos. Es un modelo muy chico, que corre en una notebook, así que todavía escribe como un aprendiz: arma bien las frases, pero pierde el hilo rápido.
+**El resultado.** Antes de entrenarlo, lo que imaginaba lo despistaba más de lo que lo ayudaba. Después, en *Niebla*, que nunca había leído, imagina cosas que sí ayudan a anticipar lo que escribió el autor en tres de cada cuatro casos. Es un modelo muy chico, que corre en una notebook, así que todavía escribe como un aprendiz: arma bien las frases, pero pierde el hilo rápido.
 
-**Para probarlo.** Se puede usar en el navegador o escribir una historia por turnos con él: vos escribís un párrafo, el modelo sigue, y así. Las instrucciones están en [Inicio rápido](#inicio-rápido).
+**Para probarlo.** Se puede usar en el navegador o escribir una historia por turnos con él: vos escribís un párrafo, el modelo sigue, y así. Las instrucciones están en [Empezar en una computadora nueva](#empezar-en-una-computadora-nueva).
 
-**Para ver resultados sin instalar nada.** El [apéndice](docs/apendice-pruebas.md) explica paso a paso, sin tecnicismos, cómo se pone a prueba el modelo. Muestra cuatro fragmentos de *Niebla* con lo que imaginó y escribió el modelo antes y después de entrenarlo, al lado de lo que escribió Unamuno.
+**Para ver resultados sin instalar nada.** Los [ejemplos](docs/ejemplos.md) muestran lo mejor que escribió. El [apéndice](docs/apendice-pruebas.md) explica paso a paso, sin tecnicismos, cómo se pone a prueba el modelo. Muestra cuatro fragmentos de *Niebla* con lo que imaginó y escribió el modelo antes y después de entrenarlo, al lado de lo que escribió Unamuno.
+
+## Empezar en una computadora nueva
+
+Hace falta una **Mac con chip Apple** (M1 o posterior): el modelo corre con [MLX](https://github.com/ml-explore/mlx), que no anda en Windows, Linux ni Macs con Intel ([ADR 0004](docs/adr/0004-mlx-en-apple-silicon.md)). Los comandos van en la Terminal.
+
+**1. Instalar las herramientas.** Con [Homebrew](https://brew.sh/):
+
+```bash
+brew install uv git-lfs
+git lfs install
+```
+
+- [uv](https://docs.astral.sh/uv/) instala Python y las dependencias del proyecto.
+- [Git LFS](https://git-lfs.com/) baja los archivos grandes (los modelos y los datos). `git lfs install` se corre una sola vez por computadora, y **antes de clonar**: si no, los modelos quedan como punteros de texto (ver [Si algo falla](#si-algo-falla)).
+
+**2. Clonar el repo.** Baja el código y, con Git LFS, también los modelos, los datos y los resultados (~470 MB):
+
+```bash
+git clone https://github.com/andrestobelem/train.git
+cd train
+```
+
+**3. Instalar las dependencias:**
+
+```bash
+uv sync
+```
+
+**4. Verificar que todo anda.** Los tests no cargan el modelo, así que tardan unos segundos:
+
+```bash
+uv run pytest
+```
+
+**5. Usarlo.** La primera vez se baja de Hugging Face el modelo base (1,7 GB); después funciona sin conexión.
+
+```bash
+uv run imagine app             # abre la app en el navegador
+uv run imagine cuatro-manos    # una historia por turnos en la terminal
+uv run imagine generar "Augusto salió a la calle sin saber adónde ir."
+```
+
+Qué hace cada comando y sus opciones: [docs/correr-el-modelo.md](docs/correr-el-modelo.md).
+
+### Qué trae el repo
+
+Además del código y la documentación, el repo trae por Git LFS todo lo que produjo el proyecto. Así se puede seguir trabajando sin repetir nada:
+
+| Carpeta | Qué hay | Tamaño |
+|---|---|---|
+| `runs/sft/epoca_1/` | El **modelo final**: el que usan la app y la terminal | 41 MB |
+| `runs/` | Los demás modelos entrenados: checkpoints de RL (`imagine300/`) y del ajuste supervisado (`sft/`), y los registros de cada entrenamiento | 620 MB en total |
+| `data/` | El corpus (los libros de Gutenberg y los ejemplos de entrenamiento y prueba) y los ejemplos supervisados de la selección | 19 MB |
+| `logs/` | Los logs de las evaluaciones de Inspect; se ven con `uv run inspect view --log-dir logs` | 8 MB |
+
+Lo único que no trae es el modelo base de Qwen, porque es de otros y pesa 1,7 GB: se baja solo la primera vez y queda en `~/.cache/huggingface`.
+
+Todo lo de esas carpetas se puede regenerar desde cero siguiendo [docs/entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md), pero lleva horas.
+
+### Si algo falla
+
+| Qué pasa | Qué hacer |
+|---|---|
+| `imagine` dice «Los modelos vienen con el repo por Git LFS, pero no se bajaron» | Se clonó sin Git LFS. En la carpeta del repo: `git lfs install` y `git lfs pull` |
+| `brew: command not found` | Falta Homebrew: se instala desde [brew.sh](https://brew.sh/) |
+| Querés bajar sólo el modelo final, no todo | `GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/andrestobelem/train.git` y, dentro, `git lfs pull --include "runs/sft/epoca_1/*"` |
+| Falla una descarga con `CERTIFICATE_VERIFY_FAILED` | Un proxy de la red intercepta la conexión: probá desde otra red |
+| Otro error al usar el modelo | La tabla de [problemas comunes](docs/correr-el-modelo.md#problemas-comunes) |
+
+El modelo final también está en un repo privado de Hugging Face, `andrestobelem/imagine-qwen3.5-0.8b`, como alternativa a Git LFS.
+
+### Seguir trabajando
+
+- **Antes de commitear:** `uv run ruff format imagine evals tests`, `uv run ruff check imagine evals tests` y `uv run pytest`.
+- **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) con scope y en español, uno por cambio lógico.
+- **Con un agente como Claude Code:** [AGENTS.md](AGENTS.md) le dice qué leer antes: los principios de diseño, el glosario y las decisiones de diseño. La conversación con el agente no está en el repo, pero lo que se decidió en ella sí: en el glosario, los ADR y esta documentación.
+
+## Uso
+
+| Para… | Comando | Guía |
+|---|---|---|
+| Probar el modelo en el navegador | `uv run imagine app` | [correr-el-modelo.md](docs/correr-el-modelo.md#la-app) |
+| Escribir a cuatro manos en la terminal | `uv run imagine cuatro-manos` | [correr-el-modelo.md](docs/correr-el-modelo.md#a-cuatro-manos) |
+| Continuar un fragmento en la terminal | `uv run imagine generar "…"` | [correr-el-modelo.md](docs/correr-el-modelo.md#un-fragmento) |
+| Elegir cómo se le presenta la escena (12 plantillas) | `uv run imagine plantillas` | [correr-el-modelo.md](docs/correr-el-modelo.md#plantillas) |
+| Armar el corpus | `uv run python -m imagine.datos.corpus` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#1-corpus) |
+| Entrenar con GRPO | `uv run python -m imagine.entrenamiento.grpo --salida runs/imagine300` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#2-rl-con-grpo-3-h) |
+| Selección + SFT | `uv run python -m imagine.entrenamiento.sft muestrear` / `entrenar` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#3-selección-y-ajuste-supervisado-1-h) |
+| Evaluar en *Niebla* | `uv run inspect eval imagine/niebla --model mlx/runs/sft/epoca_1` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#4-evaluar-con-inspect-ai) |
+
+## Documentación
+
+| Documento | Para qué |
+|---|---|
+| [docs/ejemplos.md](docs/ejemplos.md) | Para no técnicos: una selección de lo mejor que escribió el modelo |
+| [docs/apendice-pruebas.md](docs/apendice-pruebas.md) | Para no técnicos: cómo se prueba el modelo y cuatro ejemplos al azar |
+| [docs/correr-el-modelo.md](docs/correr-el-modelo.md) | Usar el escritor: línea de comandos, app, Python, `mlx_lm`, problemas comunes |
+| [docs/entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md) | Reproducir el modelo final: corpus, GRPO, selección + SFT, Inspect |
+| [GLOSSARY.md](GLOSSARY.md) | El lenguaje del dominio: fragmento, imaginación, ganancia, juez… |
+| [docs/adr/](docs/adr/) | Decisiones de diseño difíciles de revertir |
+| [CONSTITUTION.md](CONSTITUTION.md) | Principios de diseño del código |
+| [AGENTS.md](AGENTS.md) | Instrucciones para agentes y verificación antes de commitear |
 
 ## La receta de DeepSeek-R1, aplicada a la escritura
 
@@ -26,48 +132,6 @@ Adaptación de la receta de [DeepSeek-R1](https://arxiv.org/abs/2501.12948) (RL 
 
 Después del RL viene, como en R1, una etapa de selección y ajuste supervisado. El resultado es un escritor que imagina la escena y después continúa la novela.
 
-## Inicio rápido
-
-En una Mac con chip Apple, con [uv](https://docs.astral.sh/uv/) y [Git LFS](https://git-lfs.com/):
-
-```bash
-brew install git-lfs && git lfs install      # una sola vez por computadora
-git clone https://github.com/andrestobelem/train.git && cd train
-uv sync
-uv run imagine app
-```
-
-`uv run imagine app` abre el navegador. En la terminal también están `uv run imagine cuatro-manos`, para escribir por turnos, y `uv run imagine generar "…"`. Los detalles están en [docs/correr-el-modelo.md](docs/correr-el-modelo.md).
-
-## Modelos, datos y resultados
-
-Vienen con el repo, por [Git LFS](https://git-lfs.com/): git guarda un puntero y LFS baja el archivo. Por eso hace falta `git lfs install` antes de clonar.
-
-| Qué | Dónde | Tamaño |
-|---|---|---|
-| Modelo final | `runs/sft/epoca_1/` | 41 MB |
-| Checkpoints de RL y del ajuste supervisado | `runs/` | 620 MB (con el final) |
-| Corpus y ejemplos supervisados | `data/` | 19 MB |
-| Logs de evaluación | `logs/` | 8 MB |
-
-Lo único que no viene es el modelo base (1,7 GB), que se baja solo de Hugging Face la primera vez que se usa.
-
-- **Si clonaste sin Git LFS**, los archivos quedan como punteros de texto y `imagine` avisa. Se arregla con `git lfs install && git lfs pull`.
-- **Para bajar sólo el modelo final:** `GIT_LFS_SKIP_SMUDGE=1 git clone …` y después `git lfs pull --include "runs/sft/epoca_1/*"`.
-- **Todo se puede regenerar**, sin bajarlo, siguiendo [docs/entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md).
-
-## Documentación
-
-| Documento | Para qué |
-|---|---|
-| [docs/apendice-pruebas.md](docs/apendice-pruebas.md) | Para no técnicos: cómo se prueba el modelo y cuatro ejemplos reales |
-| [docs/correr-el-modelo.md](docs/correr-el-modelo.md) | Usar el escritor: línea de comandos, app, Python, `mlx_lm`, problemas comunes |
-| [docs/entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md) | Reproducir el modelo final: corpus, GRPO, selección + SFT, Inspect |
-| [GLOSSARY.md](GLOSSARY.md) | El lenguaje del dominio: fragmento, imaginación, ganancia, juez… |
-| [docs/adr/](docs/adr/) | Decisiones de diseño difíciles de revertir |
-| [CONSTITUTION.md](CONSTITUTION.md) | Principios de diseño del código |
-| [AGENTS.md](AGENTS.md) | Instrucciones para agentes y verificación antes de commitear |
-
 ## Recompensa de corpus
 
 Cada ejemplo es un fragmento de una novela en español (Project Gutenberg) y su referencia: lo que el autor escribió a continuación, que el escritor nunca ve. El juez, el modelo base congelado, mide la **ganancia**:
@@ -79,8 +143,8 @@ recompensa = 1 + tanh(4·Δ)   si el formato es válido, 0 si no
 
 La imaginación no ve la referencia, así que sólo suma si anticipa lo que de verdad pasa. Se verifica contra el corpus sin entrenar un modelo de recompensa, por la misma razón por la que R1 evita las recompensas neuronales.
 
-- Entrenamiento: *Don Quijote* (Cervantes) y *Fortunata y Jacinta* (Pérez Galdós).
-- Prueba: *Niebla* (Unamuno). Ni el libro ni su autor aparecen en el entrenamiento.
+- Entrenamiento: [*Don Quijote*](https://www.gutenberg.org/ebooks/2000) (Cervantes) y [*Fortunata y Jacinta*](https://www.gutenberg.org/ebooks/17013) (Pérez Galdós).
+- Prueba: [*Niebla*](https://www.gutenberg.org/ebooks/49836) (Unamuno). Ni el libro ni su autor aparecen en el entrenamiento.
 
 Una diferencia con R1-Zero: la plantilla incluye un ejemplo (one-shot, [ADR 0002](docs/adr/0002-plantilla-con-un-ejemplo.md)). Sin él, el modelo de 0.8B cierra la etiqueta sólo ~5 % de las veces; con él, ~90 % a temperatura 0.8.
 
@@ -166,21 +230,6 @@ El código sigue los principios de [CONSTITUTION.md](CONSTITUTION.md). Cada paqu
 Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.5-0.8B-Base`) o una carpeta de adaptadores del proyecto (`runs/sft/epoca_1`). Los modelos entrenados de referencia (el RL y el final) están en `imagine/persistencia/catalogo.py`. Los presupuestos de generación (tokens y temperaturas) están en `imagine/dominio/escritura.py`.
 
 `tests/test_arquitectura.py` verifica que cada capa importe sólo las de abajo y que el dominio no dependa de MLX, Inspect ni Gradio.
-
-## Uso
-
-| Para… | Comando | Guía |
-|---|---|---|
-| Probar el modelo en el navegador | `uv run imagine app` | [correr-el-modelo.md](docs/correr-el-modelo.md#la-app) |
-| Escribir a cuatro manos en la terminal | `uv run imagine cuatro-manos` | [correr-el-modelo.md](docs/correr-el-modelo.md#a-cuatro-manos) |
-| Continuar un fragmento en la terminal | `uv run imagine generar "…"` | [correr-el-modelo.md](docs/correr-el-modelo.md#un-fragmento) |
-| Elegir cómo se le presenta la escena (12 plantillas) | `uv run imagine plantillas` | [correr-el-modelo.md](docs/correr-el-modelo.md#plantillas) |
-| Armar el corpus | `uv run python -m imagine.datos.corpus` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#1-corpus) |
-| Entrenar con GRPO | `uv run python -m imagine.entrenamiento.grpo --salida runs/imagine300` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#2-rl-con-grpo-3-h) |
-| Selección + SFT | `uv run python -m imagine.entrenamiento.sft muestrear` / `entrenar` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#3-selección-y-ajuste-supervisado-1-h) |
-| Evaluar en *Niebla* | `uv run inspect eval imagine/niebla --model mlx/runs/sft/epoca_1` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#4-evaluar-con-inspect-ai) |
-
-Pensado para Apple Silicon (MLX, [ADR 0004](docs/adr/0004-mlx-en-apple-silicon.md)).
 
 ## Apéndice
 

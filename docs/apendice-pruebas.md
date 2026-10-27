@@ -17,7 +17,7 @@ Cuando entrenamos, el modelo recibe un premio cada vez que su nota ayuda. Despu�
 
 ## Dónde se lo prueba
 
-Entrenamos al modelo con *Don Quijote*, de Cervantes, y *Fortunata y Jacinta*, de Galdós. Lo probamos con *Niebla*, de Unamuno, un libro que nunca vio y de un autor que no estaba en el entrenamiento. Así sabemos que no está repitiendo de memoria.
+Entrenamos al modelo con [*Don Quijote*](https://www.gutenberg.org/ebooks/2000), de Cervantes, y [*Fortunata y Jacinta*](https://www.gutenberg.org/ebooks/17013), de Galdós. Lo probamos con [*Niebla*](https://www.gutenberg.org/ebooks/49836), de Unamuno, un libro que nunca vio y de un autor que no estaba en el entrenamiento. Así sabemos que no está repitiendo de memoria.
 
 Comparamos dos versiones:
 
