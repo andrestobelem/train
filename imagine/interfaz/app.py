@@ -62,14 +62,14 @@ def construir() -> gr.Blocks:
                 )
                 boton = gr.Button("Continuar", variant="primary")
             with gr.Column():
-                imaginado = gr.Textbox(label="<imagine>", lines=5)
+                imaginacion = gr.Textbox(label="<imagine>", lines=5)
                 continuacion = gr.Textbox(label="Continuación", lines=12)
         if ejemplos():
             gr.Examples(ejemplos(), inputs=[fragmento], label="Fragmentos de Niebla")
         boton.click(
             responder,
             inputs=[fragmento, modelo, imaginar, temperatura, largo],
-            outputs=[imaginado, continuacion],
+            outputs=[imaginacion, continuacion],
         )
     return demo
 

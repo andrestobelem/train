@@ -1,6 +1,6 @@
 """Tarea `imagine/prosa`: calidad de la continuación que se escribe después de imaginar.
 
-`imagine/niebla` mide si lo imaginado anticipa al autor; esta tarea mide lo que el
+`imagine/niebla` mide si la imaginación anticipa la referencia; esta tarea mide lo que el
 lector efectivamente lee. Métricas (todas por reglas, sin juez):
 
 - repeticion, distintos, ajenos, palabras: ver `imagine.dominio.prosa`.

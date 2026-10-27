@@ -1,1 +1,1 @@
-"""Entrenamiento: GRPO (RL) y rejection sampling + SFT, como en DeepSeek-R1."""
+"""Entrenamiento: GRPO (RL) y selección + ajuste supervisado, como en DeepSeek-R1."""

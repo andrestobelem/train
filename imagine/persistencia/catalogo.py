@@ -10,7 +10,7 @@ CORRIDA_GRPO = "runs/imagine300"
 # Checkpoint de RL del que parte el SFT (paso 250: de los mejores en Niebla).
 RL = f"{CORRIDA_GRPO}/paso_00250"
 
-# Modelo final: RL + rejection sampling + SFT, época 1 (la de menor val loss).
+# Modelo final: RL + selección + ajuste supervisado, época 1 (la de menor val loss).
 FINAL = "runs/sft/epoca_1"
 
 # Salida por defecto de cada entrenamiento.
