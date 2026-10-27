@@ -1,40 +1,23 @@
 """Tarea `imagine/niebla`: imaginar antes de continuar *Niebla* y medirlo contra el autor."""
 
 from inspect_ai import Epochs, Task, task
-from inspect_ai.dataset import MemoryDataset, Sample
 from inspect_ai.model import GenerateConfig
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState, generate
 
-from imagine.datos.archivos import TEST, leer_jsonl
 from imagine.dominio.escritura import (
     CIERRA,
     TEMPERATURA_MUESTREO,
     TOKENS_IMAGINACION,
     formato_ok,
-    prompt,
 )
 from imagine.dominio.recompensa import recompensa
 from imagine.ejecucion import puntuacion
 from imagine.ejecucion.hilo import en_hilo_mlx, en_hilo_mlx_async
 from imagine.ejecucion.modelos import cargar_por_nombre
 
+from . import dataset
 from .metricas import NAN, media_valida
-
-
-def dataset(n: int) -> MemoryDataset:
-    """Fragmentos de *Niebla*, el libro que el modelo no vio al entrenar."""
-    return MemoryDataset(
-        [
-            Sample(
-                id=i,
-                input=prompt(f["contexto"]),
-                target=f["referencia"],
-                metadata={"fragmento": f["contexto"]},
-            )
-            for i, f in enumerate(leer_jsonl(TEST, n))
-        ]
-    )
 
 
 @scorer(metrics={k: [media_valida()] for k in ["formato", "recompensa", "delta", "ayuda"]})
@@ -77,7 +60,7 @@ def niebla(
     max_tokens: int = TOKENS_IMAGINACION,
 ):
     return Task(
-        dataset=dataset(n),
+        dataset=dataset.niebla(n),
         solver=generate(),
         scorer=corpus(),
         epochs=Epochs(muestras, "media_valida"),

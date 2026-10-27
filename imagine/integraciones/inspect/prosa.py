@@ -29,8 +29,8 @@ from imagine.ejecucion import puntuacion
 from imagine.ejecucion.hilo import en_hilo_mlx, en_hilo_mlx_async
 from imagine.ejecucion.modelos import cargar_por_nombre
 
+from . import dataset
 from .metricas import NAN, media_valida
-from .niebla import dataset
 
 METRICAS = ["formato", "repeticion", "distintos", "ajenos", "fluidez", "chrf", "palabras"]
 _CHRF = CHRF()
@@ -103,7 +103,7 @@ def prosa(
     max_tokens_continuar: int = 128,
 ):
     return Task(
-        dataset=dataset(n),
+        dataset=dataset.niebla(n),
         solver=imaginar_y_continuar(imaginar, max_tokens_continuar, temperatura),
         scorer=calidad(),
         epochs=Epochs(muestras, "media_valida"),
