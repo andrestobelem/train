@@ -3,8 +3,11 @@
 - Fragmento: el escritor imagina y después continúa un fragmento.
 - A cuatro manos: el lector y el escritor se turnan para escribir una historia.
 
-uv run python -m imagine.interfaz.app      # http://127.0.0.1:7860
+uv run imagine app      # abre http://127.0.0.1:7860 en el navegador
 """
+
+import argparse
+import sys
 
 import gradio as gr
 
@@ -17,11 +20,15 @@ from imagine.ejecucion.hilo import en_hilo_mlx
 from imagine.ejecucion.modelos import MODELO_BASE, cargar_por_nombre
 from imagine.persistencia import catalogo
 
-MODELOS = {
-    "RL + SFT (final)": catalogo.FINAL,
-    "RL (GRPO, paso 250)": catalogo.RL,
-    "Base (Qwen3.5-0.8B-Base)": MODELO_BASE,
+from .modelo import disponible, falta
+
+TODOS = {
+    "Entrenado (final)": catalogo.FINAL,
+    "Sólo RL (paso 250)": catalogo.RL,
+    "Sin entrenar (base)": MODELO_BASE,
 }
+# Sólo los que están en esta máquina: el de RL, por ejemplo, no se publica.
+MODELOS = {etiqueta: nombre for etiqueta, nombre in TODOS.items() if disponible(nombre)}
 
 
 def responder(fragmento: str, etiqueta: str, imaginar: bool, temperatura: float, largo: int):
@@ -88,14 +95,18 @@ def construir() -> gr.Blocks:
     with gr.Blocks(title="imagine") as demo:
         gr.Markdown(
             "# imagine\n"
-            "Qwen3.5-0.8B-Base entrenado a la DeepSeek-R1 para **imaginar** antes de "
-            "continuar una novela. Es un modelo base: no sigue instrucciones, continúa texto "
-            "en español."
+            "Un modelo chico que **imagina** la escena antes de continuar una novela en "
+            "español. No responde preguntas ni sigue instrucciones: continúa el texto que "
+            "le des."
         )
         with gr.Tab("Fragmento"):
             with gr.Row():
                 with gr.Column():
-                    fragmento = gr.Textbox(label="Fragmento", lines=10)
+                    fragmento = gr.Textbox(
+                        label="Fragmento",
+                        lines=10,
+                        placeholder="Pegá unas líneas de una novela y apretá Continuar.",
+                    )
                     modelo = gr.Radio(list(MODELOS), value=list(MODELOS)[0], label="Modelo")
                     imaginar = gr.Checkbox(value=True, label="Imaginar antes de escribir")
                     temperatura = gr.Slider(
@@ -138,5 +149,21 @@ def construir() -> gr.Blocks:
     return demo
 
 
+def main():
+    ap = argparse.ArgumentParser(description="App de Gradio para probar el escritor.")
+    ap.add_argument("--puerto", type=int, default=7860)
+    ap.add_argument("--no-abrir", action="store_true", help="no abrir el navegador")
+    args = ap.parse_args()
+    if aviso := falta(catalogo.FINAL):
+        print(f"{aviso}\n\nMientras tanto, la app arranca sin él.\n", file=sys.stderr)
+    try:
+        construir().launch(server_port=args.puerto, inbrowser=not args.no_abrir)
+    except OSError:
+        sys.exit(
+            f"El puerto {args.puerto} está ocupado: seguramente la app ya está abierta en "
+            f"http://127.0.0.1:{args.puerto}. Cerrala o usá --puerto {args.puerto + 1}."
+        )
+
+
 if __name__ == "__main__":
-    construir().launch()
+    main()
