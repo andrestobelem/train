@@ -30,7 +30,7 @@ from imagine.dominio.escritura import (
 from imagine.ejecucion import escritor, puntuacion
 from imagine.ejecucion.lm import logprobs_completacion, prellenar
 from imagine.ejecucion.modelos import cargar
-from imagine.persistencia import adaptadores
+from imagine.persistencia import adaptadores, catalogo
 
 from .lora import entrenar_solo_lora, millones_entrenables
 
@@ -163,7 +163,7 @@ def main():
         p = sub.add_parser(nombre)
         p.add_argument(
             "--adaptadores",
-            default="runs/imagine300/paso_00250",
+            default=catalogo.RL,
             help="modelo de RL del que se parte",
         )
         p.add_argument("--salida-datos", default=str(SFT))
@@ -175,7 +175,7 @@ def main():
     m.add_argument("--max-tokens", type=int, default=TOKENS_IMAGINACION)
     m.add_argument("--temperatura", type=float, default=TEMPERATURA_MUESTREO)
     e = sub.choices["entrenar"]
-    e.add_argument("--salida", default="runs/sft")
+    e.add_argument("--salida", default=catalogo.SALIDA_SFT)
     e.add_argument("--epocas", type=int, default=2)
     e.add_argument("--lr", type=float, default=5e-6)
     e.add_argument("--acumular", type=int, default=4, help="ejemplos por actualización")

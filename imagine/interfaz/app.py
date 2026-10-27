@@ -10,10 +10,11 @@ from imagine.dominio.escritura import TEMPERATURA_ESCRITURA, TOKENS_CONTINUACION
 from imagine.ejecucion.escritor import imaginar_y_continuar
 from imagine.ejecucion.hilo import en_hilo_mlx
 from imagine.ejecucion.modelos import MODELO_BASE, cargar_por_nombre
+from imagine.persistencia import catalogo
 
 MODELOS = {
-    "RL + SFT (final)": "runs/sft/epoca_1",
-    "RL (GRPO, paso 250)": "runs/imagine300/paso_00250",
+    "RL + SFT (final)": catalogo.FINAL,
+    "RL (GRPO, paso 250)": catalogo.RL,
     "Base (Qwen3.5-0.8B-Base)": MODELO_BASE,
 }
 

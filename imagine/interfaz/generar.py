@@ -7,14 +7,15 @@ import argparse
 
 from imagine.dominio.escritura import TEMPERATURA_ESCRITURA, TOKENS_CONTINUACION
 from imagine.ejecucion.escritor import imaginar_y_continuar
-from imagine.ejecucion.modelos import MODELO_BASE, cargar_por_nombre
+from imagine.ejecucion.modelos import cargar_por_nombre
+from imagine.persistencia import catalogo
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("fragmento")
     ap.add_argument(
-        "--modelo", default=MODELO_BASE, help="repo de Hugging Face o carpeta de adaptadores"
+        "--modelo", default=catalogo.FINAL, help="repo de Hugging Face o carpeta de adaptadores"
     )
     ap.add_argument("--temperatura", type=float, default=TEMPERATURA_ESCRITURA)
     ap.add_argument("--max-tokens", type=int, default=TOKENS_CONTINUACION)

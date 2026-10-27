@@ -28,7 +28,7 @@ from imagine.dominio.recompensa import recompensa
 from imagine.ejecucion import escritor, puntuacion
 from imagine.ejecucion.lm import logprobs_completacion, prellenar, rellenar
 from imagine.ejecucion.modelos import MODELO_BASE, cargar
-from imagine.persistencia import adaptadores
+from imagine.persistencia import adaptadores, catalogo
 
 from .lora import agregar_lora, millones_entrenables
 
@@ -36,7 +36,7 @@ from .lora import agregar_lora, millones_entrenables
 @dataclass
 class ConfigGRPO:
     datos: str = str(TRAIN)
-    salida: str = "runs/imagine"
+    salida: str = catalogo.SALIDA_GRPO
     pasos: int = 300
     prompts_por_paso: int = 4
     grupo: int = 8  # G: muestras por prompt
