@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "imagine.interfaz.app",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "python", "-m", "imagine.interfaz.app"],
+      "port": 7860
+    }
+  ]
+}
