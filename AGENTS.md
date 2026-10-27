@@ -12,6 +12,10 @@ Antes de diseñar, escribir o revisar código, leé [CONSTITUTION.md](CONSTITUTI
 
 Si un cambio no puede cumplir alguno de los principios, decilo explícitamente y explicá por qué.
 
+## Lenguaje del dominio
+
+El glosario está en [CONTEXT.md](CONTEXT.md) y las decisiones de diseño, en [docs/adr/](docs/adr/). Usá esos términos en el código, los nombres, los docstrings y la conversación, y evitá los que el glosario marca con _Evitar_. Si un término nuevo se resuelve o uno existente cambia, actualizá `CONTEXT.md` en el mismo commit. Para esa tarea está el skill `domain-modeling` (`npx skills add mattpocock/skills@domain-modeling`).
+
 ## Antes de commitear
 
 ```bash
