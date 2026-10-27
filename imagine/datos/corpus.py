@@ -9,21 +9,26 @@ escritor nunca la ve: sólo se usa para medir la ganancia y para el ajuste super
 import argparse
 import random
 
-from imagine.dominio.corpus import Ejemplo
+from imagine.dominio.corpus import Corpus, Ejemplo, Libro
 from imagine.dominio.escritura import PALABRAS_DEL_FRAGMENTO, recortar_fragmento
 
 from . import gutenberg
 from .archivos import DATOS
 from .repositorio import escribir_ejemplos
 
-LIBROS = {
-    "train": {
-        2000: "Don Quijote — Cervantes",
-        17013: "Fortunata y Jacinta — Pérez Galdós",
-    },
-    "test": {
-        49836: "Niebla — Unamuno",
-    },
+CORPUS = Corpus(
+    entrenamiento=(
+        Libro("Don Quijote", "Cervantes"),
+        Libro("Fortunata y Jacinta", "Pérez Galdós"),
+    ),
+    prueba=(Libro("Niebla", "Unamuno"),),
+)
+
+# Dónde está cada libro en Project Gutenberg.
+GUTENBERG_ID = {
+    "Don Quijote": 2000,
+    "Fortunata y Jacinta": 17013,
+    "Niebla": 49836,
 }
 
 
@@ -79,15 +84,20 @@ def main():
     crudo.mkdir(parents=True, exist_ok=True)
     rnd = random.Random(args.semilla)
 
-    for split, libros in LIBROS.items():
-        filas = []
-        for gid, nombre in libros.items():
-            filas += ejemplos(gutenberg.parrafos(gutenberg.descargar(gid, crudo)), nombre)
-        rnd.shuffle(filas)
-        if split == "test":
-            filas = filas[: args.max_test]
-        escribir_ejemplos(DATOS / f"{split}.jsonl", filas)
-        print(f"{split}: {len(filas)} ejemplos")
+    def ejemplos_de(libros: tuple[Libro, ...]) -> list[Ejemplo]:
+        salida = []
+        for libro in libros:
+            texto = gutenberg.descargar(GUTENBERG_ID[libro.titulo], crudo)
+            salida += ejemplos(gutenberg.parrafos(texto), libro.nombre)
+        rnd.shuffle(salida)
+        return salida
+
+    # Los archivos conservan los nombres train/test del formato en disco.
+    entrenamiento = ejemplos_de(CORPUS.entrenamiento)
+    prueba = ejemplos_de(CORPUS.prueba)[: args.max_test]
+    escribir_ejemplos(DATOS / "train.jsonl", entrenamiento)
+    escribir_ejemplos(DATOS / "test.jsonl", prueba)
+    print(f"entrenamiento: {len(entrenamiento)} ejemplos | prueba: {len(prueba)} ejemplos")
 
 
 if __name__ == "__main__":

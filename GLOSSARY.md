@@ -34,8 +34,15 @@ Cada intervención del lector o del escritor. Una continuación termina cuando e
 **Libro**:
 Una novela en español de dominio público de la que se sacan ejemplos.
 
+**Corpus**:
+Los libros de entrenamiento más los libros de prueba.
+
+**Libro de entrenamiento**:
+Un libro cuyos ejemplos se usan para entrenar al escritor: *Don Quijote* y *Fortunata y Jacinta*.
+_Evitar_: train set
+
 **Libro de prueba**:
-El libro que se reserva para evaluar y nunca se usa para entrenar: *Niebla*.
+Un libro que se reserva para evaluar y nunca se usa para entrenar: *Niebla*. Su autor no escribió ningún libro de entrenamiento, así que la prueba mide si el escritor generaliza a otro autor y no si recuerda un estilo ya visto.
 _Evitar_: test set, validación
 
 **Referencia**:
