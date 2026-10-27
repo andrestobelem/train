@@ -8,27 +8,52 @@ Adaptación de la receta de [DeepSeek-R1](https://arxiv.org/abs/2501.12948) (RL 
 | `<think> … </think>` antes de responder | `<imagine> … </imagine>` antes de continuar la novela |
 | Recompensa de exactitud: ¿la respuesta es correcta? | Recompensa de corpus: cuánto mejora lo imaginado la predicción de lo que el autor escribió de verdad |
 | Recompensa de formato | Recompensa de formato: cierra `</imagine>`, no está vacío, no reabre la etiqueta |
-| GRPO | GRPO (objetivo recortado + KL k3 contra el modelo de referencia), con LoRA sobre MLX |
+| GRPO | GRPO (objetivo recortado + KL k3 contra el modelo base), con LoRA sobre MLX |
+
+Después del RL viene, como en R1, una etapa de selección y ajuste supervisado. El resultado es un escritor que imagina la escena y después continúa la novela.
+
+## Inicio rápido
+
+En una Mac con Apple Silicon y [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync
+uv run python -m imagine.interfaz.app        # http://127.0.0.1:7860
+uv run python -m imagine.interfaz.generar "Augusto salió a la calle sin saber adónde ir."
+```
+
+Los adaptadores entrenados (`runs/`) no están en git. Sin ellos, sólo funciona el modelo base: `--modelo Qwen/Qwen3.5-0.8B-Base`. Los detalles están en [docs/correr-el-modelo.md](docs/correr-el-modelo.md).
+
+## Documentación
+
+| Documento | Para qué |
+|---|---|
+| [docs/correr-el-modelo.md](docs/correr-el-modelo.md) | Usar el escritor: línea de comandos, app, Python, `mlx_lm`, problemas comunes |
+| [docs/entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md) | Reproducir el modelo final: corpus, GRPO, selección + SFT, Inspect |
+| [GLOSSARY.md](GLOSSARY.md) | El lenguaje del dominio: fragmento, imaginación, ganancia, juez… |
+| [docs/adr/](docs/adr/) | Decisiones de diseño difíciles de revertir |
+| [CONSTITUTION.md](CONSTITUTION.md) | Principios de diseño del código |
+| [AGENTS.md](AGENTS.md) | Instrucciones para agentes y verificación antes de commitear |
 
 ## Recompensa de corpus
 
-Cada ejemplo es un fragmento de una novela en español (Project Gutenberg) y el texto que le sigue, que el modelo nunca ve. Con el modelo de referencia congelado:
+Cada ejemplo es un fragmento de una novela en español (Project Gutenberg) y su referencia: lo que el autor escribió a continuación, que el escritor nunca ve. El juez, el modelo base congelado, mide la **ganancia**:
 
 ```
 Δ = log p(referencia | fragmento, imaginación) − log p(referencia | fragmento, imaginación vacía)   (media por token)
-r = 1 + tanh(4·Δ)   si el formato es válido, 0 si no
+recompensa = 1 + tanh(4·Δ)   si el formato es válido, 0 si no
 ```
 
 La imaginación no ve la referencia, así que sólo suma si anticipa lo que de verdad pasa. Se verifica contra el corpus sin entrenar un modelo de recompensa, por la misma razón por la que R1 evita las recompensas neuronales.
 
 - Entrenamiento: *Don Quijote* (Cervantes) y *Fortunata y Jacinta* (Pérez Galdós).
-- Test: *Niebla* (Unamuno), un libro que no aparece en el entrenamiento.
+- Prueba: *Niebla* (Unamuno). Ni el libro ni su autor aparecen en el entrenamiento.
 
-Una diferencia con R1-Zero: el prompt incluye un ejemplo (one-shot). Sin él, el modelo de 0.8B cierra la etiqueta sólo ~5 % de las veces; con él, ~90 % a temperatura 0.8.
+Una diferencia con R1-Zero: la plantilla incluye un ejemplo (one-shot, [ADR 0002](docs/adr/0002-plantilla-con-un-ejemplo.md)). Sin él, el modelo de 0.8B cierra la etiqueta sólo ~5 % de las veces; con él, ~90 % a temperatura 0.8.
 
 ## Resultados
 
-300 pasos de GRPO (4 fragmentos × G=8 por paso, lr 2e-6, LoRA rango 16), ~3 h en una M2 Max, con un checkpoint cada 50 pasos. Cada modelo se evaluó sobre 40 fragmentos de *Niebla* con 4 muestras por fragmento, dos veces: con el script `evaluar` original (hoy reemplazado por la tarea `imagine/niebla`) y con Inspect (`evals/niebla_flow.py`). La columna Δ está en nats/token.
+300 pasos de GRPO (4 fragmentos × G=8 por paso, lr 2e-6, LoRA rango 16), ~3 h en una M2 Max, con un checkpoint cada 50 pasos. Cada modelo se evaluó sobre 40 fragmentos de *Niebla* con 4 intentos por fragmento, dos veces: con el script `evaluar` original (hoy reemplazado por la tarea `imagine/niebla`) y con Inspect (`evals/niebla_flow.py`). La columna Δ está en nats/token.
 
 | Modelo | Formato (evaluar / Inspect) | Δ evaluar | Δ Inspect | Imaginaciones que ayudan (evaluar / Inspect) |
 |---|---|---|---|---|
@@ -41,18 +66,18 @@ Una diferencia con R1-Zero: el prompt incluye un ejemplo (one-shot). Sin él, el
 | paso 300 | 98 % / 98 % | +0,021 | +0,021 | 70 % / 67 % |
 
 - Antes del entrenamiento, imaginar empeoraba la predicción del texto real. Después la mejora, en un libro que el modelo no vio: de −0,02 a +0,02 nats/token.
-- La mejora crece hasta el paso ~150 y después se estanca. Entre los pasos 150 y 300 las diferencias (~0,005) están dentro del ruido: el error estándar de Δ es ±0,003 por muestra, y es mayor porque las 4 muestras de un fragmento están correlacionadas.
+- La mejora crece hasta el paso ~150 y después se estanca. Entre los pasos 150 y 300 las diferencias (~0,005) están dentro del ruido: el error estándar de Δ es ±0,003 por intento, y es mayor porque los 4 intentos de un fragmento están correlacionados.
 - Las dos evaluaciones usan intentos distintos y coinciden dentro de ese ruido.
 - La prosa sigue siendo la de un modelo de 0.8B.
 
-## Segunda etapa: rejection sampling + SFT
+## Segunda etapa: selección + SFT
 
-Como en DeepSeek-R1, después del RL viene una etapa supervisada (`imagine.sft`):
+Como en DeepSeek-R1, después del RL viene una etapa supervisada (`imagine.entrenamiento.sft`; en el paper, *rejection sampling*):
 
-1. El modelo de RL (paso 250) imagina 8 veces sobre 600 fragmentos de entrenamiento. Por cada fragmento se queda la imaginación con mayor Δ positivo, verificada contra el corpus. Quedan 569 ejemplos.
-2. Ajuste supervisado sobre fragmento → mejor imaginación → **texto real del autor**. El RL sólo premiaba la imaginación; acá el modelo aprende también a escribir la continuación como Cervantes o Galdós.
+1. El modelo de RL (paso 250) imagina 8 veces sobre 600 fragmentos de entrenamiento. Por cada fragmento, la selección se queda con la imaginación de mayor ganancia, si ayuda (Δ > 0). Quedan 569 ejemplos supervisados.
+2. Ajuste supervisado sobre fragmento → imaginación elegida → **referencia**. El RL sólo premiaba la imaginación; acá el modelo aprende también a escribir la continuación como Cervantes o Galdós.
 
-La val loss baja de 3,33 a 3,03 en la época 1 y sube en la 2, así que se usa `runs/sft/epoca_1`.
+La pérdida de validación baja de 3,33 a 3,03 en la época 1 y sube en la 2, así que el modelo final es `runs/sft/epoca_1`.
 
 ### Evaluación final en *Niebla* (Inspect)
 
@@ -101,43 +126,23 @@ El código sigue los principios de [CONSTITUTION.md](CONSTITUTION.md). Cada paqu
 | `datos` | Corpus de Gutenberg; repositorio de ejemplos en jsonl | `dominio` |
 | `persistencia` | Guardar y leer adaptadores LoRA; catálogo de los modelos entrenados | — |
 | `ejecucion` | MLX: carga con caché única, hilo dedicado, muestreo, escritor, puntuación contra el corpus | `dominio`, `datos`, `persistencia` |
-| `entrenamiento` | GRPO, rejection sampling + SFT, LoRA | `ejecucion` y anteriores |
+| `entrenamiento` | GRPO, selección + SFT, LoRA | `ejecucion` y anteriores |
 | `integraciones.inspect` | Proveedor `mlx/` y tareas `imagine/niebla` e `imagine/prosa` | `ejecucion` y anteriores |
 | `interfaz` | Línea de comandos y app de Gradio (fragmento e historia a cuatro manos) | `ejecucion` y anteriores |
 
 Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.5-0.8B-Base`) o una carpeta de adaptadores del proyecto (`runs/sft/epoca_1`). Los modelos entrenados de referencia (el RL y el final) están en `imagine/persistencia/catalogo.py`. Los presupuestos de generación (tokens y temperaturas) están en `imagine/dominio/escritura.py`.
 
-`tests/test_arquitectura.py` verifica que cada capa importe sólo las de abajo y que el dominio no dependa de MLX, Inspect ni Gradio:
-
-```bash
-uv run pytest
-uv run ruff check imagine evals tests
-```
+`tests/test_arquitectura.py` verifica que cada capa importe sólo las de abajo y que el dominio no dependa de MLX, Inspect ni Gradio.
 
 ## Uso
 
-```bash
-uv sync
-uv run python -m imagine.datos.corpus                                    # descarga y arma data/
-uv run python -m imagine.entrenamiento.grpo --salida runs/imagine300     # RL con GRPO
-uv run python -m imagine.entrenamiento.sft muestrear --adaptadores runs/imagine300/paso_00250
-uv run python -m imagine.entrenamiento.sft entrenar --adaptadores runs/imagine300/paso_00250
-uv run python -m imagine.interfaz.generar "Fragmento…"                     # modelo final por defecto
-uv run python -m imagine.interfaz.app                                    # Gradio: fragmento y a cuatro manos
-```
+| Para… | Comando | Guía |
+|---|---|---|
+| Probar el modelo en el navegador | `uv run python -m imagine.interfaz.app` | [correr-el-modelo.md](docs/correr-el-modelo.md#app-de-gradio) |
+| Continuar un fragmento en la terminal | `uv run python -m imagine.interfaz.generar "…"` | [correr-el-modelo.md](docs/correr-el-modelo.md#línea-de-comandos) |
+| Armar el corpus | `uv run python -m imagine.datos.corpus` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#1-corpus) |
+| Entrenar con GRPO | `uv run python -m imagine.entrenamiento.grpo --salida runs/imagine300` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#2-rl-con-grpo-3-h) |
+| Selección + SFT | `uv run python -m imagine.entrenamiento.sft muestrear` / `entrenar` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#3-selección-y-ajuste-supervisado-1-h) |
+| Evaluar en *Niebla* | `uv run inspect eval imagine/niebla --model mlx/runs/sft/epoca_1` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#4-evaluar-con-inspect-ai) |
 
-### Con Inspect AI e Inspect Flow
-
-El proyecto registra en Inspect AI el proveedor `mlx/` y las tareas `imagine/niebla` (imaginación) e `imagine/prosa` (calidad de la continuación):
-
-```bash
-uv run inspect eval imagine/niebla --model mlx/Qwen/Qwen3.5-0.8B-Base
-uv run inspect eval imagine/niebla --model mlx/runs/sft/epoca_1
-uv run inspect eval imagine/prosa --model mlx/Qwen/Qwen3.5-0.8B-Base -T imaginar=false
-uv run flow run evals/niebla_flow.py      # base + todos los checkpoints de IMAGINE_RUN
-uv run flow run evals/prosa_flow.py       # prosa: base, base imaginando y entrenados
-uv run python evals/resumen.py logs/prosa # tablas desde los logs
-uv run inspect view --log-dir logs/niebla
-```
-
-Pensado para Apple Silicon (MLX). Las métricas de entrenamiento quedan en `runs/<nombre>/log.jsonl`.
+Pensado para Apple Silicon (MLX, [ADR 0004](docs/adr/0004-mlx-en-apple-silicon.md)).
