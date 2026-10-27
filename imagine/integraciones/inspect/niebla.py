@@ -7,7 +7,13 @@ from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState, generate
 
 from imagine.datos.archivos import TEST, leer_jsonl
-from imagine.dominio.escritura import CIERRA, formato_ok, prompt
+from imagine.dominio.escritura import (
+    CIERRA,
+    TEMPERATURA_MUESTREO,
+    TOKENS_IMAGINACION,
+    formato_ok,
+    prompt,
+)
 from imagine.dominio.recompensa import recompensa
 from imagine.ejecucion import puntuacion
 from imagine.ejecucion.hilo import en_hilo_mlx, en_hilo_mlx_async
@@ -64,7 +70,12 @@ def corpus() -> Scorer:
 
 
 @task
-def niebla(n: int = 40, muestras: int = 4, temperatura: float = 0.8, max_tokens: int = 96):
+def niebla(
+    n: int = 40,
+    muestras: int = 4,
+    temperatura: float = TEMPERATURA_MUESTREO,
+    max_tokens: int = TOKENS_IMAGINACION,
+):
     return Task(
         dataset=dataset(n),
         solver=generate(),

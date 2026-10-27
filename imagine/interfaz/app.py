@@ -6,6 +6,7 @@ uv run python -m imagine.interfaz.app      # http://127.0.0.1:7860
 import gradio as gr
 
 from imagine.datos.archivos import TEST, leer_jsonl
+from imagine.dominio.escritura import TEMPERATURA_ESCRITURA, TOKENS_CONTINUACION
 from imagine.ejecucion.escritor import imaginar_y_continuar
 from imagine.ejecucion.hilo import en_hilo_mlx
 from imagine.ejecucion.modelos import MODELO_BASE, cargar_por_nombre
@@ -48,8 +49,12 @@ def construir() -> gr.Blocks:
                 fragmento = gr.Textbox(label="Fragmento", lines=10)
                 modelo = gr.Radio(list(MODELOS), value=list(MODELOS)[0], label="Modelo")
                 imaginar = gr.Checkbox(value=True, label="Imaginar antes de escribir")
-                temperatura = gr.Slider(0.0, 1.5, value=0.7, step=0.05, label="Temperatura")
-                largo = gr.Slider(32, 400, value=200, step=8, label="Tokens de la continuación")
+                temperatura = gr.Slider(
+                    0.0, 1.5, value=TEMPERATURA_ESCRITURA, step=0.05, label="Temperatura"
+                )
+                largo = gr.Slider(
+                    32, 400, value=TOKENS_CONTINUACION, step=8, label="Tokens de la continuación"
+                )
                 boton = gr.Button("Continuar", variant="primary")
             with gr.Column():
                 imaginado = gr.Textbox(label="<imagine>", lines=5)

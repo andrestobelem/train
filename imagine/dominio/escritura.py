@@ -33,6 +33,16 @@ PALABRAS_DE_CONTEXTO = 180
 # Una imaginación válida tiene al menos estas palabras.
 MIN_PALABRAS = 5
 
+# Presupuesto de la imaginación, el mismo al entrenar, evaluar y usar el modelo.
+TOKENS_IMAGINACION = 96
+
+# Temperatura para muestrear imaginaciones al entrenar y evaluar (explorar variantes).
+TEMPERATURA_MUESTREO = 0.8
+
+# Temperatura y largo por defecto al escribir para un lector (más conservador).
+TEMPERATURA_ESCRITURA = 0.7
+TOKENS_CONTINUACION = 200
+
 # El próximo turno del lector: marca el final de la continuación.
 FIN_TURNO = "\n\nLector:"
 

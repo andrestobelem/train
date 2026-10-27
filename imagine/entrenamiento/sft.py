@@ -21,7 +21,12 @@ import mlx.optimizers as optim
 from mlx.utils import tree_map
 
 from imagine.datos.archivos import SFT, TRAIN, agregar_jsonl, leer_jsonl, ruta_del_proyecto
-from imagine.dominio.escritura import objetivo_supervisado, prompt
+from imagine.dominio.escritura import (
+    TEMPERATURA_MUESTREO,
+    TOKENS_IMAGINACION,
+    objetivo_supervisado,
+    prompt,
+)
 from imagine.ejecucion import escritor, puntuacion
 from imagine.ejecucion.lm import logprobs_completacion, prellenar
 from imagine.ejecucion.modelos import cargar
@@ -167,8 +172,8 @@ def main():
     m.add_argument("--datos", default=str(TRAIN))
     m.add_argument("-n", type=int, default=600, help="fragmentos a muestrear")
     m.add_argument("--grupo", type=int, default=8)
-    m.add_argument("--max-tokens", type=int, default=96)
-    m.add_argument("--temperatura", type=float, default=0.8)
+    m.add_argument("--max-tokens", type=int, default=TOKENS_IMAGINACION)
+    m.add_argument("--temperatura", type=float, default=TEMPERATURA_MUESTREO)
     e = sub.choices["entrenar"]
     e.add_argument("--salida", default="runs/sft")
     e.add_argument("--epocas", type=int, default=2)

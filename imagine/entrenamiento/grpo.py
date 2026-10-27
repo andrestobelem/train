@@ -23,6 +23,7 @@ import mlx.optimizers as optim
 from mlx.utils import tree_map
 
 from imagine.datos.archivos import TRAIN, agregar_jsonl, leer_jsonl, ruta_del_proyecto
+from imagine.dominio.escritura import TEMPERATURA_MUESTREO, TOKENS_IMAGINACION
 from imagine.dominio.recompensa import recompensa
 from imagine.ejecucion import escritor, puntuacion
 from imagine.ejecucion.lm import logprobs_completacion, prellenar, rellenar
@@ -40,8 +41,8 @@ class ConfigGRPO:
     prompts_por_paso: int = 4
     grupo: int = 8  # G: muestras por prompt
     micro_lote: int = 2  # completaciones por backward
-    max_tokens: int = 96
-    temperatura: float = 0.8
+    max_tokens: int = TOKENS_IMAGINACION
+    temperatura: float = TEMPERATURA_MUESTREO
     lr: float = 2e-6
     beta: float = 0.04  # peso de la KL
     eps: float = 0.2  # recorte de PPO

@@ -19,6 +19,8 @@ from imagine.dominio import prosa as reglas
 from imagine.dominio.escritura import (
     CIERRA,
     FINES_CONTINUACION,
+    TEMPERATURA_MUESTREO,
+    TOKENS_IMAGINACION,
     cortar_continuacion,
     formato_ok,
     prompt_continuacion,
@@ -96,8 +98,8 @@ def prosa(
     n: int = 40,
     muestras: int = 2,
     imaginar: bool = True,
-    temperatura: float = 0.8,
-    max_tokens_imaginar: int = 96,
+    temperatura: float = TEMPERATURA_MUESTREO,
+    max_tokens_imaginar: int = TOKENS_IMAGINACION,
     max_tokens_continuar: int = 128,
 ):
     return Task(

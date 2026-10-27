@@ -5,6 +5,7 @@ uv run python -m imagine.interfaz.generar --modelo runs/sft/epoca_1 "Texto del f
 
 import argparse
 
+from imagine.dominio.escritura import TEMPERATURA_ESCRITURA, TOKENS_CONTINUACION
 from imagine.ejecucion.escritor import imaginar_y_continuar
 from imagine.ejecucion.modelos import MODELO_BASE, cargar_por_nombre
 
@@ -15,8 +16,8 @@ def main():
     ap.add_argument(
         "--modelo", default=MODELO_BASE, help="repo de Hugging Face o carpeta de adaptadores"
     )
-    ap.add_argument("--temperatura", type=float, default=0.7)
-    ap.add_argument("--max-tokens", type=int, default=200)
+    ap.add_argument("--temperatura", type=float, default=TEMPERATURA_ESCRITURA)
+    ap.add_argument("--max-tokens", type=int, default=TOKENS_CONTINUACION)
     ap.add_argument("--sin-imaginar", action="store_true")
     args = ap.parse_args()
 
