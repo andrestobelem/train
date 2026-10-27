@@ -10,6 +10,8 @@ Enseñamos a una inteligencia artificial chica a **imaginar antes de escribir**.
 
 **Para probarlo.** Se puede usar en el navegador o escribir una historia por turnos con él: vos escribís un párrafo, el modelo sigue, y así. Las instrucciones están en [Inicio rápido](#inicio-rápido).
 
+**Para ver resultados sin instalar nada.** El [apéndice](docs/apendice-pruebas.md) explica paso a paso, sin tecnicismos, cómo se pone a prueba el modelo. Muestra cuatro fragmentos de *Niebla* con lo que imaginó y escribió el modelo antes y después de entrenarlo, al lado de lo que escribió Unamuno.
+
 ## La receta de DeepSeek-R1, aplicada a la escritura
 
 Adaptación de la receta de [DeepSeek-R1](https://arxiv.org/abs/2501.12948) (RL puro con GRPO y recompensas basadas en reglas sobre un modelo base) a la escritura literaria en lugar de la matemática.
@@ -46,6 +48,7 @@ Sin los adaptadores, sólo funciona el modelo base: `--modelo Qwen/Qwen3.5-0.8B-
 
 | Documento | Para qué |
 |---|---|
+| [docs/apendice-pruebas.md](docs/apendice-pruebas.md) | Para no técnicos: cómo se prueba el modelo y cuatro ejemplos reales |
 | [docs/correr-el-modelo.md](docs/correr-el-modelo.md) | Usar el escritor: línea de comandos, app, Python, `mlx_lm`, problemas comunes |
 | [docs/entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md) | Reproducir el modelo final: corpus, GRPO, selección + SFT, Inspect |
 | [GLOSSARY.md](GLOSSARY.md) | El lenguaje del dominio: fragmento, imaginación, ganancia, juez… |
@@ -165,3 +168,7 @@ Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.
 | Evaluar en *Niebla* | `uv run inspect eval imagine/niebla --model mlx/runs/sft/epoca_1` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#4-evaluar-con-inspect-ai) |
 
 Pensado para Apple Silicon (MLX, [ADR 0004](docs/adr/0004-mlx-en-apple-silicon.md)).
+
+## Apéndice
+
+[El modelo, puesto a prueba](docs/apendice-pruebas.md): una explicación para gente no técnica y cuatro pruebas reales en *Niebla*, con el modelo sin entrenar y el entrenado.
