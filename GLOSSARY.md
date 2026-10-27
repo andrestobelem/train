@@ -27,7 +27,11 @@ Lo que el escritor escribe después de la imaginación, para el lector.
 _Evitar_: respuesta, completación, salida
 
 **Turno**:
-Cada intervención del lector o del escritor. Una continuación termina cuando empieza el turno siguiente del lector.
+Cada intervención del lector o del escritor. Los turnos alternan y empieza el lector. Un turno puede quedar vacío: quien no escribió nada pasó, y le toca al otro. Una continuación termina cuando empieza el turno siguiente del lector.
+
+**Historia a cuatro manos**:
+Una historia que el lector y el escritor escriben por turnos. En cada turno suyo, el escritor ve como fragmento el final de la historia.
+_Evitar_: chat, conversación
 
 ### El corpus
 

@@ -15,6 +15,7 @@ from imagine.dominio.escritura import (
     prompt,
     prompt_continuacion,
 )
+from imagine.dominio.historia import Historia, Rol, Turno
 
 from .lm import muestrear
 
@@ -72,3 +73,17 @@ def imaginar_y_continuar(
         _, (generada,) = imaginar(model, tok, fragmento, 1, temperatura=temperatura)
         imaginacion = generada.imaginacion
     return imaginacion, continuar(model, tok, fragmento, imaginacion, max_tokens, temperatura)
+
+
+def turno_del_escritor(
+    model,
+    tok,
+    historia: Historia,
+    temperatura: float = TEMPERATURA_ESCRITURA,
+    max_tokens: int = TOKENS_CONTINUACION,
+) -> tuple[Imaginacion, Historia]:
+    """El escritor imagina y continúa la historia desde su fragmento final."""
+    imaginacion, continuacion = imaginar_y_continuar(
+        model, tok, historia.fragmento, temperatura, max_tokens
+    )
+    return imaginacion, historia.agregar(Turno(Rol.ESCRITOR, continuacion))
