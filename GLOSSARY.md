@@ -26,6 +26,10 @@ _Evitar_: imaginado, razonamiento, pensamiento, plan
 Lo que el escritor escribe después de la imaginación, para el lector.
 _Evitar_: respuesta, completación, salida
 
+**Plantilla**:
+El encuadre con que se le presenta la escena al escritor: una consigna, un ejemplo resuelto y el fragmento. Cada plantilla pide imaginar de otra manera (conversar, soñar, leer, poner en escena…), pero en todas el escritor imagina entre las etiquetas y después continúa. Cada una marca a su modo dónde empieza el turno siguiente.
+_Evitar_: prompt, system prompt
+
 **Turno**:
 Cada intervención del lector o del escritor. Los turnos alternan y empieza el lector. Un turno puede quedar vacío: quien no escribió nada pasó, y le toca al otro. Una continuación termina cuando empieza el turno siguiente del lector.
 

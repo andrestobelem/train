@@ -1,4 +1,4 @@
-"""La escena de escritura: plantilla, etiquetas, imaginación y dónde termina cada turno.
+"""La escena de escritura: imaginación, prompts y dónde termina cada turno.
 
 Un lector comparte un fragmento; el escritor imagina entre <imagine> </imagine> y
 después continúa la novela. Los términos están definidos en GLOSSARY.md.
@@ -6,27 +6,8 @@ después continúa la novela. Los términos están definidos en GLOSSARY.md.
 
 from dataclasses import dataclass
 
-ABRE, CIERRA = "<imagine>", "</imagine>"
-
-# Adaptación de la plantilla de DeepSeek-R1-Zero (tabla 1 del paper): en lugar de
-# razonar dentro de <think> antes de responder, el escritor imagina dentro de
-# <imagine> antes de continuar la novela. A diferencia de R1-Zero se incluye un
-# ejemplo (one-shot): un modelo de 0.8B casi nunca cierra la etiqueta por sí solo.
-PLANTILLA = (
-    "Un lector y un escritor conversan. El lector comparte un fragmento de una novela "
-    "y el escritor la continúa. Antes de escribir, el escritor imagina brevemente lo que "
-    "viene: qué sienten los personajes, qué van a decir o hacer y cómo sigue la escena. "
-    f"Lo imaginado va entre {ABRE} {CIERRA} y después viene la continuación.\n\n"
-    "Lector: Fragmento:\n"
-    "La lluvia no paraba. Elena dejó la carta sobre la mesa sin abrirla y miró a su "
-    "hermano, que fingía leer el periódico junto a la ventana.\n"
-    f"Escritor: {ABRE} Elena sospecha que la carta es del padre que los abandonó. El "
-    "hermano lo sabe y la evita. Ella lo enfrenta y él termina confesando que le escribía "
-    f"a escondidas. {CIERRA}\n"
-    "—¿No pensás preguntarme de quién es? —dijo Elena.\n\n"
-    "Lector: Fragmento:\n{fragmento}\n"
-    f"Escritor: {ABRE}"
-)
+from .etiquetas import ABRE, CIERRA
+from .plantillas import POR_DEFECTO, Plantilla
 
 # Cuántas palabras del texto previo entran en un fragmento (así se armaron los ejemplos).
 PALABRAS_DEL_FRAGMENTO = 180
@@ -44,11 +25,9 @@ TEMPERATURA_MUESTREO = 0.8
 TEMPERATURA_ESCRITURA = 0.7
 TOKENS_CONTINUACION = 200
 
-# El próximo turno del lector: marca el final de la continuación.
-FIN_TURNO = "\n\nLector:"
-
-# Dónde se corta una continuación: otro turno, o el modelo volviendo a las etiquetas.
-FINES_CONTINUACION = ("\nLector:", ABRE, CIERRA)
+# Con la plantilla por defecto: el turno siguiente marca el final de la continuación.
+FIN_TURNO = POR_DEFECTO.fin_turno
+FINES_CONTINUACION = POR_DEFECTO.fines
 
 
 @dataclass(frozen=True)
@@ -74,19 +53,21 @@ class Imaginacion:
 SIN_IMAGINACION = Imaginacion("")
 
 
-def prompt(fragmento: str) -> str:
+def prompt(fragmento: str, plantilla: Plantilla = POR_DEFECTO) -> str:
     """Lo que recibe el escritor: termina abriendo <imagine>."""
-    return PLANTILLA.format(fragmento=fragmento)
+    return plantilla.prompt(fragmento)
 
 
-def prompt_continuacion(fragmento: str, imaginacion: Imaginacion) -> str:
+def prompt_continuacion(
+    fragmento: str, imaginacion: Imaginacion, plantilla: Plantilla = POR_DEFECTO
+) -> str:
     """El prompt con la imaginación ya cerrada: el escritor sigue con la continuación."""
-    return prompt(fragmento) + imaginacion.texto + CIERRA + "\n"
+    return prompt(fragmento, plantilla) + imaginacion.texto + CIERRA + "\n"
 
 
-def cortar_continuacion(texto: str) -> str:
+def cortar_continuacion(texto: str, plantilla: Plantilla = POR_DEFECTO) -> str:
     """La continuación termina donde empieza otro turno o el escritor vuelve a las etiquetas."""
-    for fin in FINES_CONTINUACION:
+    for fin in plantilla.fines:
         texto = texto.split(fin)[0]
     return texto.strip()
 
