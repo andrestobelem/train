@@ -80,14 +80,25 @@ Prosa de la continuación (tarea `imagine/prosa`, 40 fragmentos × 2 muestras):
 - Con un largo similar al del modelo base sin imaginar, el SFT se parece más al autor (chrF 0,169 contra 0,156).
 - La fluidez se mide sin la imaginación en el contexto, así que penaliza continuaciones que siguen lo imaginado. La prosa sigue siendo la de un modelo de 0.8B.
 
+## Lenguaje del dominio
+
+El glosario del proyecto está en [CONTEXT.md](CONTEXT.md): fragmento, imaginación, continuación, referencia, ganancia, recompensa, selección, etc. El código usa esos mismos términos. Las decisiones difíciles de revertir están en [docs/adr/](docs/adr/):
+
+- [0001](docs/adr/0001-recompensa-por-ganancia-con-modelo-base.md): la recompensa es la ganancia medida por el modelo base congelado.
+- [0002](docs/adr/0002-plantilla-con-un-ejemplo.md): la plantilla incluye un ejemplo, a diferencia de R1-Zero.
+- [0003](docs/adr/0003-gradiente-solo-por-lo-generado.md): el gradiente pasa sólo por lo que genera el escritor.
+- [0004](docs/adr/0004-mlx-en-apple-silicon.md): se entrena y se sirve con MLX en Apple Silicon.
+
+Lo que en logs y tablas viejas figura como `delta` es la **ganancia** (Δ). Desde el modelado del dominio, los logs nuevos de GRPO y las métricas de `imagine/niebla` la llaman `ganancia`. El formato de los jsonl de `data/` no cambió.
+
 ## Arquitectura
 
 El código sigue los principios de [CONSTITUTION.md](CONSTITUTION.md). Cada paquete de `imagine/` tiene una sola responsabilidad, y las dependencias van de arriba hacia abajo:
 
 | Paquete | Responsabilidad | Depende de |
 |---|---|---|
-| `dominio` | Reglas puras: plantilla y etiquetas, cortes, formato, recompensa, métricas de prosa | — |
-| `datos` | Corpus de Gutenberg, rutas y archivos jsonl | `dominio` |
+| `dominio` | Modelo del dominio (Python puro): imaginación, ejemplo y ejemplo supervisado, recompensa, selección, métricas de prosa | — |
+| `datos` | Corpus de Gutenberg; repositorio de ejemplos en jsonl | `dominio` |
 | `persistencia` | Guardar y leer adaptadores LoRA; catálogo de los modelos entrenados | — |
 | `ejecucion` | MLX: carga con caché única, hilo dedicado, muestreo, escritor, puntuación contra el corpus | `dominio`, `datos`, `persistencia` |
 | `entrenamiento` | GRPO, rejection sampling + SFT, LoRA | `ejecucion` y anteriores |
