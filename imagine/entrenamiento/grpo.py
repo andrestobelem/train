@@ -27,6 +27,7 @@ from imagine.datos.repositorio import leer_ejemplos
 from imagine.dominio.corpus import Ejemplo
 from imagine.dominio.escritura import TEMPERATURA_MUESTREO, TOKENS_IMAGINACION
 from imagine.dominio.recompensa import Ganancia, recompensa
+from imagine.dominio.seleccion import mejor_imaginacion
 from imagine.ejecucion import escritor, puntuacion
 from imagine.ejecucion.lm import logprobs_completacion, prellenar, rellenar
 from imagine.ejecucion.modelos import MODELO_BASE, cargar
@@ -55,11 +56,12 @@ class ConfigGRPO:
     semilla: int = 0
 
 
-def perdida_grpo(model, cache, ultimo, comps, mascara, ventajas, juez_lp, viejo_lp, eps, beta, g):
+def perdida_grpo(model, cache, ultimo, comps, mascara, ventajas, base_lp, viejo_lp, eps, beta, g):
     lp = logprobs_completacion(model, cache, ultimo, comps)
     ratio = mx.exp(lp - viejo_lp)
     pg = -mx.minimum(ratio * ventajas, mx.clip(ratio, 1 - eps, 1 + eps) * ventajas)
-    kl = mx.exp(juez_lp - lp) - (juez_lp - lp) - 1
+    # KL (estimador k3) contra el modelo base: el ancla de la que no debe alejarse.
+    kl = mx.exp(base_lp - lp) - (base_lp - lp) - 1
     por_token = (pg + beta * kl) * mascara
     # Como en el paper: promedio por completación (1/|o_i|) y después por grupo. Se
     # divide por G (no por el micro-lote) para que acumular micro-lotes dé la media.
@@ -84,7 +86,7 @@ class Grupo:
     completaciones: list[list[int]]
     recompensas: list[float]
     ganancias: list[Ganancia]
-    mejor_imaginacion: str  # la de mayor recompensa, para el log
+    mejor_imaginacion: str | None  # para el log; None si ninguna tiene formato válido
 
 
 def muestrear_grupo(model, juez, tok, ejemplo: Ejemplo, conf: ConfigGRPO) -> Grupo:
@@ -94,11 +96,11 @@ def muestrear_grupo(model, juez, tok, ejemplo: Ejemplo, conf: ConfigGRPO) -> Gru
     imaginaciones = [g.imaginacion for g in generadas]
     g = puntuacion.ganancias(juez, tok, p_ids, imaginaciones, ejemplo.referencia)
     r = [recompensa(x) for x in g]
-    mejor = imaginaciones[max(range(len(r)), key=r.__getitem__)].texto
-    return Grupo(p_ids, [gen.ids for gen in generadas], r, g, mejor)
+    mejor = mejor_imaginacion(imaginaciones, g)
+    return Grupo(p_ids, [gen.ids for gen in generadas], r, g, mejor.texto if mejor else None)
 
 
-def gradientes(model, juez, tok, grupo: Grupo, ventajas: mx.array, conf: ConfigGRPO):
+def gradientes(model, base, tok, grupo: Grupo, ventajas: mx.array, conf: ConfigGRPO):
     """Gradiente de la pérdida GRPO del grupo, por micro-lotes. Devuelve (grads, loss, kl)."""
     p_ids, comps = grupo.prompt_ids, grupo.completaciones
     grad_fn = nn.value_and_grad(model, perdida_grpo)
@@ -109,10 +111,10 @@ def gradientes(model, juez, tok, grupo: Grupo, ventajas: mx.array, conf: ConfigG
         mascara = mx.arange(ids.shape[1])[None] < mx.array([len(c) for c in sub])[:, None]
         mascara = mascara.astype(mx.float32)
         n = len(sub)
-        juez_lp = logprobs_completacion(juez, prellenar(juez, p_ids, n), p_ids[-1], ids)
+        base_lp = logprobs_completacion(base, prellenar(base, p_ids, n), p_ids[-1], ids)
         # Una sola actualización por lote (on-policy): π_old = π_θ sin gradiente.
         viejo_lp = logprobs_completacion(model, prellenar(model, p_ids, n), p_ids[-1], ids)
-        mx.eval(juez_lp, viejo_lp)
+        mx.eval(base_lp, viejo_lp)
 
         cache = prellenar(model, p_ids, n)
         # En modo train la atención lineal usa ops diferenciables en vez del kernel Metal.
@@ -124,7 +126,7 @@ def gradientes(model, juez, tok, grupo: Grupo, ventajas: mx.array, conf: ConfigG
             ids,
             mascara,
             ventajas[i : i + n],
-            juez_lp,
+            base_lp,
             viejo_lp,
             conf.eps,
             conf.beta,
@@ -139,7 +141,7 @@ def gradientes(model, juez, tok, grupo: Grupo, ventajas: mx.array, conf: ConfigG
     return grads, loss, kl / n_tokens
 
 
-def paso_grupo(model, juez, tok, ejemplo: Ejemplo, conf: ConfigGRPO):
+def paso_grupo(model, juez, base, tok, ejemplo: Ejemplo, conf: ConfigGRPO):
     """Muestrea y puntúa un grupo; si hay señal, calcula gradientes. → (grads o None, métricas)."""
     grupo = muestrear_grupo(model, juez, tok, ejemplo, conf)
     r, g, comps = grupo.recompensas, grupo.ganancias, grupo.completaciones
@@ -153,7 +155,7 @@ def paso_grupo(model, juez, tok, ejemplo: Ejemplo, conf: ConfigGRPO):
     ventajas = ventajas_de_grupo(r)
     if ventajas is None:
         return None, metricas
-    grads, loss, kl = gradientes(model, juez, tok, grupo, ventajas, conf)
+    grads, loss, kl = gradientes(model, base, tok, grupo, ventajas, conf)
     metricas.update(loss=loss, kl=kl)
     return grads, metricas
 
@@ -168,9 +170,10 @@ def entrenar(conf: ConfigGRPO) -> None:
 
     ejemplos = leer_ejemplos(conf.datos)
     model, tok = cargar()
-    # El juez: el modelo base congelado, ancla de la KL.
-    juez, _ = cargar()
-    juez.freeze()
+    base, _ = cargar()
+    base.freeze()
+    # Hoy el juez es el mismo modelo base congelado (ADR 0001).
+    juez = base
     agregar_lora(model, conf.capas, conf.rango, conf.escala)
     print(f"parámetros LoRA: {millones_entrenables(model):.1f}M")
     opt = optim.AdamW(learning_rate=conf.lr, weight_decay=0.0)
@@ -180,7 +183,7 @@ def entrenar(conf: ConfigGRPO) -> None:
         t0 = time.time()
         acum, n_grads, ms = None, 0, []
         for ej in rng.sample(ejemplos, conf.prompts_por_paso):
-            grads, m = paso_grupo(model, juez, tok, ej, conf)
+            grads, m = paso_grupo(model, juez, base, tok, ej, conf)
             ms.append(m)
             if grads is None:
                 continue

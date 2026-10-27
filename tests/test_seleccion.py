@@ -17,3 +17,10 @@ def test_ejemplo_supervisado_enseña_imaginacion_y_referencia():
     ejemplo = Ejemplo(fragmento="Llovía.", referencia="Y entró.", libro="Niebla")
     supervisado = EjemploSupervisado(ejemplo, Imaginacion(" Augusto duda."), 0.03)
     assert supervisado.objetivo == " Augusto duda." + CIERRA + "\nY entró." + FIN_TURNO
+
+
+def test_mejor_imaginacion_entre_las_validas():
+    from imagine.dominio.seleccion import mejor_imaginacion
+
+    assert mejor_imaginacion([A, B, C], [-0.2, None, -0.1]) == C
+    assert mejor_imaginacion([A, B, C], [None, None, None]) is None

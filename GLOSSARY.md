@@ -80,7 +80,7 @@ _Evitar_: reward, puntaje
 ### Cómo se evalúa la continuación
 
 **Fluidez**:
-Qué tan esperable le resulta al modelo base la continuación, dado sólo el fragmento y no la imaginación. Por eso una continuación que sigue fielmente a la imaginación puede ser buena y poco fluida.
+Qué tan esperable le resulta al juez la continuación, dado sólo el fragmento y no la imaginación. Por eso una continuación que sigue fielmente a la imaginación puede ser buena y poco fluida.
 
 **Parecido con el autor**:
 Cuánto se parece la continuación a la referencia, letra por letra en secuencias cortas. No mide si la escena es la misma, sólo si se escribe parecido.
