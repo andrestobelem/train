@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from imagine.dominio.escritura import (
     CIERRA,
-    FINES_CONTINUACION,
     SIN_IMAGINACION,
     TEMPERATURA_ESCRITURA,
     TEMPERATURA_MUESTREO,
@@ -16,6 +15,7 @@ from imagine.dominio.escritura import (
     prompt_continuacion,
 )
 from imagine.dominio.historia import Historia, Rol, Turno
+from imagine.dominio.plantillas import POR_DEFECTO, Plantilla
 
 from .lm import muestrear
 
@@ -35,9 +35,10 @@ def imaginar(
     n: int = 1,
     max_tokens: int = TOKENS_IMAGINACION,
     temperatura: float = TEMPERATURA_MUESTREO,
+    plantilla: Plantilla = POR_DEFECTO,
 ) -> tuple[list[int], list[ImaginacionGenerada]]:
     """n imaginaciones del mismo fragmento. Devuelve (ids del prompt, imaginaciones)."""
-    p_ids = tok.encode(prompt(fragmento))
+    p_ids = tok.encode(prompt(fragmento, plantilla))
     salidas = muestrear(model, tok, p_ids, n, max_tokens, temperatura, (CIERRA,))
     generadas = [
         ImaginacionGenerada(ids, Imaginacion.desde_generacion(tok.decode(ids))) for ids in salidas
@@ -52,11 +53,12 @@ def continuar(
     imaginacion: Imaginacion,
     max_tokens: int = TOKENS_CONTINUACION,
     temperatura: float = TEMPERATURA_ESCRITURA,
+    plantilla: Plantilla = POR_DEFECTO,
 ) -> str:
     """La continuación de la novela después de la imaginación."""
-    p_ids = tok.encode(prompt_continuacion(fragmento, imaginacion))
-    ids = muestrear(model, tok, p_ids, 1, max_tokens, temperatura, FINES_CONTINUACION)[0]
-    return cortar_continuacion(tok.decode(ids))
+    p_ids = tok.encode(prompt_continuacion(fragmento, imaginacion, plantilla))
+    ids = muestrear(model, tok, p_ids, 1, max_tokens, temperatura, plantilla.fines)[0]
+    return cortar_continuacion(tok.decode(ids), plantilla)
 
 
 def imaginar_y_continuar(
@@ -66,13 +68,17 @@ def imaginar_y_continuar(
     temperatura: float = TEMPERATURA_ESCRITURA,
     max_tokens: int = TOKENS_CONTINUACION,
     con_imaginacion: bool = True,
+    plantilla: Plantilla = POR_DEFECTO,
 ) -> tuple[Imaginacion, str]:
     """Un turno completo del escritor. Sin imaginar, la imaginación queda vacía."""
     imaginacion = SIN_IMAGINACION
     if con_imaginacion:
-        _, (generada,) = imaginar(model, tok, fragmento, 1, temperatura=temperatura)
+        _, (generada,) = imaginar(
+            model, tok, fragmento, 1, temperatura=temperatura, plantilla=plantilla
+        )
         imaginacion = generada.imaginacion
-    return imaginacion, continuar(model, tok, fragmento, imaginacion, max_tokens, temperatura)
+    continuacion = continuar(model, tok, fragmento, imaginacion, max_tokens, temperatura, plantilla)
+    return imaginacion, continuacion
 
 
 def turno_del_escritor(
@@ -81,9 +87,10 @@ def turno_del_escritor(
     historia: Historia,
     temperatura: float = TEMPERATURA_ESCRITURA,
     max_tokens: int = TOKENS_CONTINUACION,
+    plantilla: Plantilla = POR_DEFECTO,
 ) -> tuple[Imaginacion, Historia]:
     """El escritor imagina y continúa la historia desde su fragmento final."""
     imaginacion, continuacion = imaginar_y_continuar(
-        model, tok, historia.fragmento, temperatura, max_tokens
+        model, tok, historia.fragmento, temperatura, max_tokens, plantilla=plantilla
     )
     return imaginacion, historia.agregar(Turno(Rol.ESCRITOR, continuacion))
