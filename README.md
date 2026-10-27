@@ -28,38 +28,33 @@ Después del RL viene, como en R1, una etapa de selección y ajuste supervisado.
 
 ## Inicio rápido
 
-En una Mac con chip Apple y [uv](https://docs.astral.sh/uv/):
+En una Mac con chip Apple, con [uv](https://docs.astral.sh/uv/) y [Git LFS](https://git-lfs.com/):
 
 ```bash
+brew install git-lfs && git lfs install      # una sola vez por computadora
+git clone https://github.com/andrestobelem/train.git && cd train
 uv sync
-uv run hf auth login
-uv run hf download andrestobelem/imagine-qwen3.5-0.8b --local-dir runs/sft/epoca_1
 uv run imagine app
 ```
 
-El modelo entrenado está en un repo privado de Hugging Face: hace falta una cuenta con acceso. `uv run imagine app` abre el navegador. En la terminal también están `uv run imagine cuatro-manos`, para escribir por turnos, y `uv run imagine generar "…"`. Los detalles están en [docs/correr-el-modelo.md](docs/correr-el-modelo.md), y qué hay que bajar aparte, en [Lo que no está en git](#lo-que-no-está-en-git).
+`uv run imagine app` abre el navegador. En la terminal también están `uv run imagine cuatro-manos`, para escribir por turnos, y `uv run imagine generar "…"`. Los detalles están en [docs/correr-el-modelo.md](docs/correr-el-modelo.md).
 
-## Lo que no está en git
+## Modelos, datos y resultados
 
-Git guarda el código y la documentación. Los modelos, los datos y los resultados quedan afuera (`runs/`, `data/` y `logs/`, en `.gitignore`), porque pesan o porque se pueden regenerar. En otra computadora hay que conseguirlos aparte:
+Vienen con el repo, por [Git LFS](https://git-lfs.com/): git guarda un puntero y LFS baja el archivo. Por eso hace falta `git lfs install` antes de clonar.
 
-| Qué | Dónde va | Tamaño | Cómo conseguirlo |
-|---|---|---|---|
-| Modelo base | caché de Hugging Face | 1,7 GB | Se baja solo la primera vez que se usa |
-| Modelo final | `runs/sft/epoca_1/` | 41 MB | `uv run hf download andrestobelem/imagine-qwen3.5-0.8b --local-dir runs/sft/epoca_1` (repo privado: hace falta acceso) |
-| Corpus | `data/train.jsonl`, `data/test.jsonl` | 13 MB | `uv run python -m imagine.datos.corpus` (baja los libros de Gutenberg; sale idéntico) |
-| Ejemplos supervisados | `data/sft.jsonl` | 1 MB | `uv run python -m imagine.entrenamiento.sft muestrear` (~45 min) |
-| Checkpoints de RL | `runs/imagine300/` | 290 MB | Entrenar con GRPO (~3 h, ver [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md)) |
-| Logs de evaluación | `logs/` | 8 MB | Correr las evaluaciones de Inspect (horas) |
+| Qué | Dónde | Tamaño |
+|---|---|---|
+| Modelo final | `runs/sft/epoca_1/` | 41 MB |
+| Checkpoints de RL y del ajuste supervisado | `runs/` | 620 MB (con el final) |
+| Corpus y ejemplos supervisados | `data/` | 19 MB |
+| Logs de evaluación | `logs/` | 8 MB |
 
-Para **usar** el modelo alcanza con las dos primeras filas. Para **seguir entrenando o evaluando**, conviene llevarse todo desde la computadora donde ya está, en vez de regenerarlo:
+Lo único que no viene es el modelo base (1,7 GB), que se baja solo de Hugging Face la primera vez que se usa.
 
-```bash
-tar czf imagine-local.tgz data runs logs     # en la computadora original (~590 MB)
-tar xzf imagine-local.tgz                    # en la nueva, dentro de la carpeta del repo
-```
-
-La computadora nueva también tiene que ser una Mac con chip Apple. Después de `git clone` y `uv sync`, `uv run pytest` confirma que el código anda.
+- **Si clonaste sin Git LFS**, los archivos quedan como punteros de texto y `imagine` avisa. Se arregla con `git lfs install && git lfs pull`.
+- **Para bajar sólo el modelo final:** `GIT_LFS_SKIP_SMUDGE=1 git clone …` y después `git lfs pull --include "runs/sft/epoca_1/*"`.
+- **Todo se puede regenerar**, sin bajarlo, siguiendo [docs/entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md).
 
 ## Documentación
 

@@ -13,28 +13,28 @@ Todo se usa con un solo comando, `imagine`:
 
 Hace falta una Mac con chip Apple (M1 o posterior). No corre en Windows, Linux ni Macs con Intel ([ADR 0004](adr/0004-mlx-en-apple-silicon.md)).
 
-1. Instalá [uv](https://docs.astral.sh/uv/), que se encarga de Python y las dependencias:
+1. Instalá [uv](https://docs.astral.sh/uv/), que se encarga de Python y las dependencias, y [Git LFS](https://git-lfs.com/), que baja los modelos:
 
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
+   brew install git-lfs && git lfs install
    ```
 
-2. En la carpeta del proyecto:
+2. Cloná el repo. Con Git LFS instalado, el modelo entrenado viene incluido:
+
+   ```bash
+   git clone https://github.com/andrestobelem/train.git && cd train
+   ```
+
+3. Instalá las dependencias:
 
    ```bash
    uv sync
    ```
 
-3. Bajá el modelo entrenado. Está en un repo privado de Hugging Face, así que necesitás una cuenta con acceso:
-
-   ```bash
-   uv run hf auth login
-   uv run hf download andrestobelem/imagine-qwen3.5-0.8b --local-dir runs/sft/epoca_1
-   ```
-
 La primera vez que se usa, también se baja el modelo base de Hugging Face (~1,7 GB). Después funciona sin conexión.
 
-Si falta el modelo entrenado, `imagine` lo avisa y muestra estos mismos comandos.
+Si clonaste sin Git LFS o falta el modelo entrenado, `imagine` lo avisa y dice qué correr. El modelo final también está en Hugging Face: `uv run hf download andrestobelem/imagine-qwen3.5-0.8b --local-dir runs/sft/epoca_1`.
 
 ## La app
 
@@ -179,7 +179,8 @@ uv run python -m mlx_lm generate \
 
 | Síntoma | Qué hacer |
 |---|---|
-| `401` o `403` al bajar el modelo | No iniciaste sesión o tu cuenta no tiene acceso al repo. Corré `uv run hf auth login` y pedí acceso. |
+| «Los modelos vienen con el repo por Git LFS, pero no se bajaron» | Clonaste sin Git LFS. Corré `git lfs install` y `git lfs pull` en la carpeta del repo. |
+| `401` o `403` al bajar de Hugging Face | Ese repo es privado: hace falta iniciar sesión con `uv run hf auth login` y tener acceso. Con Git LFS no hace falta. |
 | `CERTIFICATE_VERIFY_FAILED` al bajar algo | Un proxy de la red intercepta la conexión. Bajá el modelo desde otra red o configurá `REQUESTS_CA_BUNDLE`. |
 | «El puerto 7860 está ocupado» al abrir la app | Ya hay una app abierta: usala, cerrala o abrí otra con `--puerto 7861`. |
 | `There is no Stream(cpu, 0) in current thread` | Se usó MLX desde otro hilo. Envolvé la llamada con `en_hilo_mlx`. |
