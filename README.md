@@ -88,13 +88,20 @@ El código sigue los principios de [CONSTITUTION.md](CONSTITUTION.md). Cada paqu
 |---|---|---|
 | `dominio` | Reglas puras: plantilla y etiquetas, cortes, formato, recompensa, métricas de prosa | — |
 | `datos` | Corpus de Gutenberg, rutas y archivos jsonl | `dominio` |
-| `persistencia` | Guardar y leer adaptadores LoRA | — |
+| `persistencia` | Guardar y leer adaptadores LoRA; catálogo de los modelos entrenados | — |
 | `ejecucion` | MLX: carga con caché única, hilo dedicado, muestreo, escritor, puntuación contra el corpus | `dominio`, `datos`, `persistencia` |
 | `entrenamiento` | GRPO, rejection sampling + SFT, LoRA | `ejecucion` y anteriores |
 | `integraciones.inspect` | Proveedor `mlx/` y tareas `imagine/niebla` e `imagine/prosa` | `ejecucion` y anteriores |
 | `interfaz` | Línea de comandos y app de Gradio | `ejecucion` y anteriores |
 
-Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.5-0.8B-Base`) o una carpeta de adaptadores del proyecto (`runs/sft/epoca_1`).
+Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.5-0.8B-Base`) o una carpeta de adaptadores del proyecto (`runs/sft/epoca_1`). Los modelos entrenados de referencia (el RL y el final) están en `imagine/persistencia/catalogo.py`. Los presupuestos de generación (tokens y temperaturas) están en `imagine/dominio/escritura.py`.
+
+`tests/test_arquitectura.py` verifica que cada capa importe sólo las de abajo y que el dominio no dependa de MLX, Inspect ni Gradio:
+
+```bash
+uv run pytest
+uv run ruff check imagine evals tests
+```
 
 ## Uso
 
@@ -104,7 +111,7 @@ uv run python -m imagine.datos.corpus                                    # desca
 uv run python -m imagine.entrenamiento.grpo --salida runs/imagine300     # RL con GRPO
 uv run python -m imagine.entrenamiento.sft muestrear --adaptadores runs/imagine300/paso_00250
 uv run python -m imagine.entrenamiento.sft entrenar --adaptadores runs/imagine300/paso_00250
-uv run python -m imagine.interfaz.generar --modelo runs/sft/epoca_1 "Fragmento…"
+uv run python -m imagine.interfaz.generar "Fragmento…"                     # modelo final por defecto
 uv run python -m imagine.interfaz.app                                    # Gradio en http://127.0.0.1:7860
 ```
 
