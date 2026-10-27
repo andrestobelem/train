@@ -1,0 +1,3 @@
+# El gradiente pasa sólo por lo que genera el escritor, no por el fragmento
+
+La atención lineal de Qwen3.5, en modo diferenciable, guarda un estado de 128×128 por cabeza, token y capa. Propagar gradientes por el fragmento y la plantilla (~500 tokens) no entra en los 64 GB de la Mac. Por eso el prompt se procesa sin gradiente y se retropropaga sólo por la imaginación (en el aprendizaje por refuerzo) o por la imaginación y la continuación (en el ajuste supervisado). Los valores de las probabilidades son exactos, pero el gradiente es una aproximación: ignora cómo cambiarían las representaciones del prompt.
