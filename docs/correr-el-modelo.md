@@ -7,6 +7,7 @@ Todo se usa con un solo comando, `imagine`:
 | `uv run imagine app` | Abre la app en el navegador |
 | `uv run imagine cuatro-manos` | Escribe una historia por turnos en la terminal |
 | `uv run imagine generar "…"` | Imagina y continúa un fragmento, y termina |
+| `uv run imagine plantillas` | Lista las plantillas para presentarle la escena |
 
 ## Instalar
 
@@ -41,12 +42,12 @@ Si falta el modelo entrenado, `imagine` lo avisa y muestra estos mismos comandos
 uv run imagine app
 ```
 
-Se abre el navegador en http://127.0.0.1:7860. Para cerrarla, Ctrl-C en la terminal. Tiene dos pestañas:
+Se abre el navegador en http://127.0.0.1:7860. Para cerrarla, Ctrl-C en la terminal. Al pasar el mouse sobre cada control, aparece qué hace. Tiene dos pestañas:
 
 - **Fragmento.** Pegás unas líneas de una novela y apretás «Continuar». A la derecha aparecen la imaginación y, debajo, la continuación. Abajo hay fragmentos de *Niebla* para probar sin escribir nada; aparecen si antes se armó el corpus con `uv run python -m imagine.datos.corpus`.
 - **A cuatro manos.** Escribís un párrafo, el modelo escribe el siguiente y vuelve a ser tu turno. La imaginación de cada turno aparece plegada arriba de su respuesta.
 
-En las dos podés elegir el modelo:
+En las dos podés elegir la [plantilla](#plantillas), la temperatura, el largo y el modelo. Los modelos son:
 
 - **Entrenado (final)**: el de este proyecto.
 - **Sin entrenar (base)**: para comparar.
@@ -90,12 +91,45 @@ Imprime la imaginación y la continuación, y termina. Cada vez carga el modelo 
 | Opción | Dónde | Por defecto | Para qué |
 |---|---|---|---|
 | `--modelo` | las dos | el entrenado | `Qwen/Qwen3.5-0.8B-Base` para comparar, u otra carpeta de `runs/` |
-| `--temperatura` | las dos | 0,7 | Más alta: más variada y menos coherente |
-| `--max-tokens` | las dos | 160 por turno, 200 en `generar` | Largo máximo de lo que escribe |
+| `--temperatura` | las dos | 0,7 | Cuánto se arriesga al elegir cada palabra: en 0 es previsible y se repite; por encima de 1 sorprende más y pierde coherencia |
+| `--max-tokens` | las dos | 160 por turno, 200 en `generar` | Largo máximo de lo que escribe. Un token es un pedazo de palabra: 100 tokens son unas 65 palabras |
+| `--plantilla` | las dos | `conversación` | Cómo se le presenta la escena (ver [Plantillas](#plantillas)) |
 | `--ocultar-imaginacion` | `cuatro-manos` | — | No muestra lo imaginado |
 | `--sin-imaginar` | `generar` | — | Continúa sin imaginar antes, para comparar |
 
 `uv run imagine <comando> --help` lista las opciones de cada uno.
+
+## Plantillas
+
+La plantilla es el texto con el que se le presenta la escena al modelo: una consigna, un ejemplo resuelto y el fragmento. Cada plantilla pide imaginar de otra manera:
+
+| Plantilla | Qué imagina el modelo antes de escribir |
+|---|---|
+| `conversación` | Un lector comparte un fragmento y el escritor lo continúa. **Es con la que se entrenó** y la que se usa por defecto. |
+| `novela` | Lo que viene, sin roles ni conversación |
+| `imaginar` | La escena con los sentidos: el lugar, los sonidos, los objetos |
+| `soñar` | Un sueño de cómo sigue |
+| `leer` | Lo que va a pasar, como un lector antes de dar vuelta la página |
+| `escribir` | Qué tiene que lograr el párrafo siguiente: qué revelar, qué callar |
+| `cuatro-manos` | Cómo sigue, como uno de dos autores que se turnan |
+| `taller` | El tono y lo que sienten los personajes, para que no se note el cambio de mano |
+| `folletín` | Qué pasa en la próxima entrega |
+| `teatro` | La puesta: dónde está cada uno, los gestos, los silencios |
+| `personaje` | Lo que siente el personaje, en primera persona |
+| `recordar` | Cómo fue de verdad, como una autora que escribe lo que vivió |
+
+Todas usan el mismo ejemplo (Elena y la carta), así que lo único que cambia es el encuadre. Sólo la de conversación sigue el ejemplo con un diálogo; las demás siguen con narración.
+
+El modelo **se entrenó sólo con `conversación`**. Las demás andan sin reentrenar, pero el modelo no las aprendió: sirven para explorar y comparar.
+
+```bash
+uv run imagine plantillas           # la lista
+uv run imagine plantillas soñar     # el texto completo de una
+uv run imagine generar --plantilla soñar "Augusto salió a la calle sin saber adónde ir."
+uv run imagine cuatro-manos --plantilla cuatro-manos
+```
+
+El nombre se puede escribir sin tildes (`sonar`, `folletin`). Las plantillas están en [`imagine/dominio/plantillas.py`](../imagine/dominio/plantillas.py). Para evaluar con otra, las tareas de Inspect aceptan `-T plantilla=soñar`.
 
 ## Qué esperar
 

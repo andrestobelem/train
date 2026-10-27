@@ -138,7 +138,7 @@ El código sigue los principios de [CONSTITUTION.md](CONSTITUTION.md). Cada paqu
 
 | Paquete | Responsabilidad | Depende de |
 |---|---|---|
-| `dominio` | Modelo del dominio (Python puro): corpus y libros, imaginación, ejemplo y ejemplo supervisado, recompensa, selección, historia a cuatro manos, métricas de prosa | — |
+| `dominio` | Modelo del dominio (Python puro): corpus y libros, plantillas, imaginación, ejemplo y ejemplo supervisado, recompensa, selección, historia a cuatro manos, métricas de prosa | — |
 | `datos` | Corpus de Gutenberg; repositorio de ejemplos en jsonl | `dominio` |
 | `persistencia` | Guardar y leer adaptadores LoRA; catálogo de los modelos entrenados | — |
 | `ejecucion` | MLX: carga con caché única, hilo dedicado, muestreo, escritor, puntuación contra el corpus | `dominio`, `datos`, `persistencia` |
@@ -157,6 +157,7 @@ Donde el código pide un modelo, se acepta un repo de Hugging Face (`Qwen/Qwen3.
 | Probar el modelo en el navegador | `uv run imagine app` | [correr-el-modelo.md](docs/correr-el-modelo.md#la-app) |
 | Escribir a cuatro manos en la terminal | `uv run imagine cuatro-manos` | [correr-el-modelo.md](docs/correr-el-modelo.md#a-cuatro-manos) |
 | Continuar un fragmento en la terminal | `uv run imagine generar "…"` | [correr-el-modelo.md](docs/correr-el-modelo.md#un-fragmento) |
+| Elegir cómo se le presenta la escena (12 plantillas) | `uv run imagine plantillas` | [correr-el-modelo.md](docs/correr-el-modelo.md#plantillas) |
 | Armar el corpus | `uv run python -m imagine.datos.corpus` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#1-corpus) |
 | Entrenar con GRPO | `uv run python -m imagine.entrenamiento.grpo --salida runs/imagine300` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#2-rl-con-grpo-3-h) |
 | Selección + SFT | `uv run python -m imagine.entrenamiento.sft muestrear` / `entrenar` | [entrenar-y-evaluar.md](docs/entrenar-y-evaluar.md#3-selección-y-ajuste-supervisado-1-h) |
