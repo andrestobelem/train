@@ -4,7 +4,7 @@
     {
       "name": "imagine.interfaz.app",
       "runtimeExecutable": "uv",
-      "runtimeArgs": ["run", "python", "-m", "imagine.interfaz.app"],
+      "runtimeArgs": ["run", "imagine", "app", "--no-abrir"],
       "port": 7860
     }
   ]
