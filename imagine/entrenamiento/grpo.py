@@ -74,27 +74,32 @@ def ventajas_de_grupo(recompensas: list[float]) -> mx.array | None:
     return ((r - r.mean()) / (std + 1e-4))[:, None]
 
 
-def paso_grupo(model, ref_model, tok, ejemplo: dict, conf: ConfigGRPO):
-    """Muestrea un grupo, calcula recompensas y devuelve (grads o None, métricas)."""
+@dataclass
+class Grupo:
+    """Las G imaginaciones de un fragmento, puntuadas contra el corpus."""
+
+    prompt_ids: list[int]
+    completaciones: list[list[int]]
+    recompensas: list[float]
+    deltas: list[float | None]
+    muestra: str  # la imaginación mejor puntuada, para el log
+
+
+def muestrear_grupo(model, ref_model, tok, ejemplo: dict, conf: ConfigGRPO) -> Grupo:
     p_ids, imaginaciones = escritor.imaginar(
         model, tok, ejemplo["contexto"], conf.grupo, conf.max_tokens, conf.temperatura
     )
-    comps = [im.ids for im in imaginaciones]
     d = puntuacion.deltas(
         ref_model, tok, p_ids, [(im.texto, im.cerro) for im in imaginaciones], ejemplo["referencia"]
     )
     r = [recompensa(x) for x in d]
-    metricas = {
-        "recompensa": sum(r) / len(r),
-        "formato": sum(x is not None for x in d) / len(d),
-        "delta": [x for x in d if x is not None],
-        "largo": sum(len(c) for c in comps) / len(comps),
-        "muestra": imaginaciones[max(range(len(r)), key=r.__getitem__)].texto,
-    }
-    ventajas = ventajas_de_grupo(r)
-    if ventajas is None:
-        return None, metricas
+    mejor = imaginaciones[max(range(len(r)), key=r.__getitem__)].texto
+    return Grupo(p_ids, [im.ids for im in imaginaciones], r, d, mejor)
 
+
+def gradientes(model, ref_model, tok, grupo: Grupo, ventajas: mx.array, conf: ConfigGRPO):
+    """Gradiente de la pérdida GRPO del grupo, por micro-lotes. Devuelve (grads, loss, kl)."""
+    p_ids, comps = grupo.prompt_ids, grupo.completaciones
     grad_fn = nn.value_and_grad(model, perdida_grpo)
     grads, loss, kl, n_tokens = None, 0.0, 0.0, 0
     for i in range(0, len(comps), conf.micro_lote):
@@ -130,7 +135,25 @@ def paso_grupo(model, ref_model, tok, ejemplo: dict, conf: ConfigGRPO):
         loss += perdida.item()
         kl += k.item()
         n_tokens += mascara.sum().item()
-    metricas.update(loss=loss, kl=kl / n_tokens)
+    return grads, loss, kl / n_tokens
+
+
+def paso_grupo(model, ref_model, tok, ejemplo: dict, conf: ConfigGRPO):
+    """Muestrea y puntúa un grupo; si hay señal, calcula gradientes. → (grads o None, métricas)."""
+    grupo = muestrear_grupo(model, ref_model, tok, ejemplo, conf)
+    r, d, comps = grupo.recompensas, grupo.deltas, grupo.completaciones
+    metricas = {
+        "recompensa": sum(r) / len(r),
+        "formato": sum(x is not None for x in d) / len(d),
+        "delta": [x for x in d if x is not None],
+        "largo": sum(len(c) for c in comps) / len(comps),
+        "muestra": grupo.muestra,
+    }
+    ventajas = ventajas_de_grupo(r)
+    if ventajas is None:
+        return None, metricas
+    grads, loss, kl = gradientes(model, ref_model, tok, grupo, ventajas, conf)
+    metricas.update(loss=loss, kl=kl)
     return grads, metricas
 
 
