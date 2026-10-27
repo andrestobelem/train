@@ -68,3 +68,12 @@ def test_repositorio_de_ejemplos_supervisados_ida_y_vuelta(tmp_path):
     fila = json.loads(ruta.read_text())
     assert fila["imaginado"] == " I." and fila["delta"] == 0.02
     assert repositorio.leer_supervisados(ruta) == [supervisado]
+
+
+def test_detecta_los_pesos_que_git_lfs_no_bajo(tmp_path):
+    from imagine.persistencia import adaptadores
+
+    (tmp_path / adaptadores.PESOS).write_bytes(b"version https://git-lfs.github.com/spec/v1\n")
+    assert adaptadores.sin_bajar(tmp_path)
+    (tmp_path / adaptadores.PESOS).write_bytes(b"\xf6\xb6\x00\x00{")
+    assert not adaptadores.sin_bajar(tmp_path)
