@@ -23,11 +23,11 @@ def main():
     args = ap.parse_args()
 
     model, tok = cargar_por_nombre(args.modelo)
-    imaginado, continuacion = imaginar_y_continuar(
+    imaginacion, continuacion = imaginar_y_continuar(
         model, tok, args.fragmento, args.temperatura, args.max_tokens, not args.sin_imaginar
     )
-    if imaginado:
-        print(f"<imagine> {imaginado} </imagine>\n")
+    if imaginacion.texto.strip():
+        print(f"<imagine> {imaginacion.texto.strip()} </imagine>\n")
     print(continuacion)
 
 

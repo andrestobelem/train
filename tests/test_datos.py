@@ -1,4 +1,8 @@
-from imagine.datos import archivos, corpus, gutenberg
+import json
+
+from imagine.datos import archivos, corpus, gutenberg, repositorio
+from imagine.dominio.corpus import Ejemplo, EjemploSupervisado
+from imagine.dominio.escritura import Imaginacion
 
 
 def test_jsonl_ida_y_vuelta(tmp_path):
@@ -33,11 +37,34 @@ def test_recortar_fin_corta_por_palabras_si_la_oracion_termina_muy_pronto():
     assert corpus.recortar_fin(texto, 8) == "Uno dos. Tres cuatro cinco seis siete ocho"
 
 
-def test_ejemplos_no_mezclan_contexto_y_referencia():
+def test_ejemplos_no_mezclan_fragmento_y_referencia():
     parrafos = [" ".join(f"p{i}w{j}" for j in range(40)) for i in range(10)]
     ejemplos = corpus.ejemplos(parrafos, "Libro")
     assert ejemplos
     for ej in ejemplos:
-        ultima_del_contexto = ej["contexto"].split()[-1]
-        primera_de_la_referencia = ej["referencia"].split()[0]
-        assert ultima_del_contexto.split("w")[0] != primera_de_la_referencia.split("w")[0]
+        assert isinstance(ej, Ejemplo) and ej.libro == "Libro"
+        ultima_del_fragmento = ej.fragmento.split()[-1]
+        primera_de_la_referencia = ej.referencia.split()[0]
+        assert ultima_del_fragmento.split("w")[0] != primera_de_la_referencia.split("w")[0]
+
+
+def test_repositorio_conserva_el_formato_en_disco(tmp_path):
+    ruta = tmp_path / "ejemplos.jsonl"
+    ejemplo = Ejemplo("Llovía.", "Y entró.", "Niebla")
+    repositorio.escribir_ejemplos(ruta, [ejemplo])
+    assert json.loads(ruta.read_text()) == {
+        "libro": "Niebla",
+        "contexto": "Llovía.",
+        "referencia": "Y entró.",
+    }
+    assert repositorio.leer_ejemplos(ruta) == [ejemplo]
+
+
+def test_repositorio_de_ejemplos_supervisados_ida_y_vuelta(tmp_path):
+    ruta = tmp_path / "sft.jsonl"
+    supervisado = EjemploSupervisado(Ejemplo("F.", "R.", "L"), Imaginacion(" I."), 0.02)
+    with open(ruta, "w", encoding="utf-8") as f:
+        repositorio.agregar_supervisado(f, supervisado)
+    fila = json.loads(ruta.read_text())
+    assert fila["imaginado"] == " I." and fila["delta"] == 0.02
+    assert repositorio.leer_supervisados(ruta) == [supervisado]

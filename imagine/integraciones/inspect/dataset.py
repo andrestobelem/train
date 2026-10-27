@@ -2,24 +2,24 @@
 
 from inspect_ai.dataset import MemoryDataset, Sample
 
-from imagine.datos.archivos import TEST, leer_jsonl
+from imagine.datos.repositorio import ejemplos_de_prueba
 from imagine.dominio.escritura import prompt
 
 
 def niebla(n: int) -> MemoryDataset:
-    """Fragmentos de *Niebla*, el libro que el modelo no vio al entrenar.
+    """Ejemplos del libro de prueba (*Niebla*).
 
-    El input es el prompt completo (termina abriendo <imagine>); el target es lo que
-    escribió el autor, y el fragmento queda en la metadata para armar otros prompts.
+    El input es el prompt completo (termina abriendo <imagine>); el target es la
+    referencia, y el fragmento queda en la metadata para armar otros prompts.
     """
     return MemoryDataset(
         [
             Sample(
                 id=i,
-                input=prompt(f["contexto"]),
-                target=f["referencia"],
-                metadata={"fragmento": f["contexto"]},
+                input=prompt(ejemplo.fragmento),
+                target=ejemplo.referencia,
+                metadata={"fragmento": ejemplo.fragmento},
             )
-            for i, f in enumerate(leer_jsonl(TEST, n))
+            for i, ejemplo in enumerate(ejemplos_de_prueba(n))
         ]
     )

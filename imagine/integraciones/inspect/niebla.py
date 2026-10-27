@@ -5,48 +5,43 @@ from inspect_ai.model import GenerateConfig
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState, generate
 
-from imagine.dominio.escritura import (
-    CIERRA,
-    TEMPERATURA_MUESTREO,
-    TOKENS_IMAGINACION,
-    formato_ok,
-)
-from imagine.dominio.recompensa import recompensa
+from imagine.dominio.escritura import CIERRA, TEMPERATURA_MUESTREO, TOKENS_IMAGINACION
+from imagine.dominio.recompensa import ayuda, recompensa
 from imagine.ejecucion import puntuacion
 from imagine.ejecucion.hilo import en_hilo_mlx, en_hilo_mlx_async
 from imagine.ejecucion.modelos import cargar_por_nombre
 
 from . import dataset
 from .metricas import NAN, media_valida
+from .proveedor import imaginacion_de
 
 
-@scorer(metrics={k: [media_valida()] for k in ["formato", "recompensa", "delta", "ayuda"]})
+@scorer(metrics={k: [media_valida()] for k in ["formato", "recompensa", "ganancia", "ayuda"]})
 def corpus() -> Scorer:
-    """Formato de <imagine> y Δ log-verosimilitud del texto real del autor."""
+    """Formato de la imaginación y su ganancia sobre la referencia."""
 
     async def puntuar(state: TaskState, target: Target) -> Score:
-        imaginado = state.output.completion
-        cerro = (state.output.metadata or {}).get("parada") == CIERRA
-        if not formato_ok(imaginado, cerro):
-            valor = {"formato": 0.0, "recompensa": recompensa(None), "delta": NAN, "ayuda": NAN}
-            return Score(value=valor, answer=imaginado)
-        ref_model, tok = en_hilo_mlx(cargar_por_nombre)
+        imaginacion = imaginacion_de(state.output)
+        if not imaginacion.formato_valido:
+            valor = {"formato": 0.0, "recompensa": recompensa(None), "ganancia": NAN, "ayuda": NAN}
+            return Score(value=valor, answer=imaginacion.texto)
+        juez, tok = en_hilo_mlx(cargar_por_nombre)
 
         def medir():
             p_ids = tok.encode(state.input_text)
-            (delta,) = puntuacion.deltas(ref_model, tok, p_ids, [(imaginado, True)], target.text)
-            return delta
+            (ganancia,) = puntuacion.ganancias(juez, tok, p_ids, [imaginacion], target.text)
+            return ganancia
 
-        delta = await en_hilo_mlx_async(medir)
+        ganancia = await en_hilo_mlx_async(medir)
         return Score(
             value={
                 "formato": 1.0,
-                "recompensa": recompensa(delta),
-                "delta": delta,
-                "ayuda": float(delta > 0),
+                "recompensa": recompensa(ganancia),
+                "ganancia": ganancia,
+                "ayuda": float(ayuda(ganancia)),
             },
-            answer=imaginado,
-            explanation=f"Δ = {delta:+.4f} nats/token",
+            answer=imaginacion.texto,
+            explanation=f"Δ = {ganancia:+.4f} nats/token",
         )
 
     return puntuar

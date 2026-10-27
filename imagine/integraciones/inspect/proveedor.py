@@ -20,9 +20,15 @@ from inspect_ai.model import (
 )
 from inspect_ai.tool import ToolChoice, ToolInfo
 
+from imagine.dominio.escritura import CIERRA, Imaginacion
 from imagine.ejecucion.hilo import en_hilo_mlx, en_hilo_mlx_async
 from imagine.ejecucion.lm import muestrear
 from imagine.ejecucion.modelos import cargar_por_nombre
+
+
+def imaginacion_de(salida: ModelOutput) -> Imaginacion:
+    """La imaginación de una salida cortada en </imagine> (cerró sólo si cortó ahí)."""
+    return Imaginacion(salida.completion, (salida.metadata or {}).get("parada") == CIERRA)
 
 
 @modelapi(name="mlx")

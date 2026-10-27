@@ -1,4 +1,5 @@
 from imagine.dominio import escritura as e
+from imagine.dominio.escritura import Imaginacion
 
 
 def test_prompt_termina_abriendo_imagine_y_contiene_el_fragmento():
@@ -7,22 +8,29 @@ def test_prompt_termina_abriendo_imagine_y_contiene_el_fragmento():
     assert "Lector: Fragmento:\nLlovía sobre Salamanca.\n" in p
 
 
-def test_prompt_continuacion_cierra_lo_imaginado():
-    p = e.prompt_continuacion("Llovía.", " Augusto duda.")
+def test_prompt_continuacion_cierra_la_imaginacion():
+    p = e.prompt_continuacion("Llovía.", Imaginacion(" Augusto duda."))
     assert p == e.prompt("Llovía.") + " Augusto duda." + e.CIERRA + "\n"
 
 
-def test_separar_imaginado():
-    assert e.separar_imaginado(" Augusto duda. </imagine>\nSigue") == (" Augusto duda. ", True)
-    assert e.separar_imaginado(" sin cerrar") == (" sin cerrar", False)
+def test_imaginacion_desde_generacion():
+    assert Imaginacion.desde_generacion(" Augusto duda. </imagine>\nSigue") == Imaginacion(
+        " Augusto duda. ", cerro=True
+    )
+    assert Imaginacion.desde_generacion(" sin cerrar") == Imaginacion(" sin cerrar", cerro=False)
 
 
-def test_formato_ok_exige_cierre_minimo_de_palabras_y_no_reabrir():
+def test_formato_valido_exige_cierre_minimo_de_palabras_y_no_reabrir():
     largo = "una dos tres cuatro cinco"
-    assert e.formato_ok(largo, cerro=True)
-    assert not e.formato_ok(largo, cerro=False)
-    assert not e.formato_ok("muy corto", cerro=True)
-    assert not e.formato_ok(largo + " " + e.ABRE, cerro=True)
+    assert Imaginacion(largo).formato_valido
+    assert not Imaginacion(largo, cerro=False).formato_valido
+    assert not Imaginacion("muy corto").formato_valido
+    assert not Imaginacion(largo + " " + e.ABRE).formato_valido
+
+
+def test_sin_imaginacion_no_tiene_formato_valido_pero_sirve_para_continuar():
+    assert not e.SIN_IMAGINACION.formato_valido
+    assert e.prompt_continuacion("F.", e.SIN_IMAGINACION).endswith(e.ABRE + e.CIERRA + "\n")
 
 
 def test_cortar_continuacion_en_cada_fin():
@@ -31,12 +39,11 @@ def test_cortar_continuacion_en_cada_fin():
 
 
 def test_objetivo_supervisado_imagina_continua_y_cede_el_turno():
-    objetivo = e.objetivo_supervisado(" Plan.", "Lo que escribió el autor.")
+    objetivo = e.objetivo_supervisado(Imaginacion(" Plan."), "Lo que escribió el autor.")
     assert objetivo == " Plan." + e.CIERRA + "\nLo que escribió el autor." + e.FIN_TURNO
 
 
-def test_recortar_inicio_conserva_el_final():
+def test_recortar_fragmento_conserva_el_final():
     texto = " ".join(str(i) for i in range(300))
-    recortado = e.recortar_inicio(texto, 10)
-    assert recortado == "… " + " ".join(str(i) for i in range(290, 300))
-    assert e.recortar_inicio("corto", 10) == "corto"
+    assert e.recortar_fragmento(texto, 10) == "… " + " ".join(str(i) for i in range(290, 300))
+    assert e.recortar_fragmento("corto", 10) == "corto"

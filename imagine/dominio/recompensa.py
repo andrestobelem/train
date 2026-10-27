@@ -1,22 +1,26 @@
-"""La recompensa, al estilo DeepSeek-R1: basada en reglas y verificable contra el corpus.
+"""Cómo se juzga una imaginación: ganancia y recompensa (ver CONTEXT.md y ADR 0001).
 
-R1 premia exactitud (¿la respuesta es correcta?) y formato (¿razonó entre <think>?).
-Acá no hay una respuesta correcta, pero sabemos qué escribió el autor a continuación:
-
-- Formato: ver `escritura.formato_ok`.
-- Corpus: Δ = cuánto mejora lo imaginado la log-verosimilitud media por token del
-  texto real del autor, frente a una imaginación vacía. La imaginación no ve la
-  referencia: sólo gana si anticipa lo que de verdad pasa en la novela.
+DeepSeek-R1 premia exactitud (¿la respuesta es correcta?) y formato (¿razonó entre
+<think>?). Acá no hay una respuesta correcta, pero sabemos qué escribió el autor: la
+ganancia mide cuánto ayuda la imaginación a anticipar la referencia.
 """
 
 import math
 
+# Ganancia en nats por token; None cuando la imaginación no tiene formato válido.
+Ganancia = float | None
 
-def recompensa(delta: float | None) -> float:
-    """Sin formato válido (Δ = None) → 0. Válida → 1 + tanh(4·Δ), con Δ en nats/token.
 
-    Una imaginación con formato correcto nunca vale menos que una sin formato, y con
+def recompensa(ganancia: Ganancia) -> float:
+    """Sin formato válido → 0. Con formato válido → 1 + tanh(4·Δ).
+
+    Una imaginación con formato válido nunca vale menos que una sin formato, y con
     Δ realistas (|Δ| < 1; en la práctica ronda ±0,1) vale estrictamente más. Entre las
     válidas manda cuánto ayudan a predecir al autor.
     """
-    return 0.0 if delta is None else 1.0 + math.tanh(4 * delta)
+    return 0.0 if ganancia is None else 1.0 + math.tanh(4 * ganancia)
+
+
+def ayuda(ganancia: Ganancia) -> bool:
+    """Una imaginación ayuda si su ganancia es positiva."""
+    return ganancia is not None and ganancia > 0

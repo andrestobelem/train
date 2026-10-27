@@ -1,9 +1,10 @@
-"""El protocolo de escritura: plantilla, etiquetas y dónde empieza y termina cada parte.
+"""La escena de escritura: plantilla, etiquetas, imaginación y dónde termina cada turno.
 
 Un lector comparte un fragmento; el escritor imagina entre <imagine> </imagine> y
-después continúa la novela. Estas reglas las comparten el entrenamiento, la
-evaluación y la interfaz, así que viven en un solo lugar.
+después continúa la novela. Los términos están definidos en CONTEXT.md.
 """
+
+from dataclasses import dataclass
 
 ABRE, CIERRA = "<imagine>", "</imagine>"
 
@@ -23,12 +24,12 @@ PLANTILLA = (
     "hermano lo sabe y la evita. Ella lo enfrenta y él termina confesando que le escribía "
     f"a escondidas. {CIERRA}\n"
     "—¿No pensás preguntarme de quién es? —dijo Elena.\n\n"
-    "Lector: Fragmento:\n{contexto}\n"
+    "Lector: Fragmento:\n{fragmento}\n"
     f"Escritor: {ABRE}"
 )
 
-# Cuántas palabras del texto previo ve el escritor (así se armaron los ejemplos).
-PALABRAS_DE_CONTEXTO = 180
+# Cuántas palabras del texto previo entran en un fragmento (así se armaron los ejemplos).
+PALABRAS_DEL_FRAGMENTO = 180
 
 # Una imaginación válida tiene al menos estas palabras.
 MIN_PALABRAS = 5
@@ -50,41 +51,54 @@ FIN_TURNO = "\n\nLector:"
 FINES_CONTINUACION = ("\nLector:", ABRE, CIERRA)
 
 
+@dataclass(frozen=True)
+class Imaginacion:
+    """Lo que el escritor escribe entre <imagine> y </imagine>."""
+
+    texto: str
+    cerro: bool = True  # si cerró la etiqueta
+
+    @classmethod
+    def desde_generacion(cls, generado: str) -> "Imaginacion":
+        """Lo que el escritor generó después de <imagine>, hasta el cierre si lo hubo."""
+        if CIERRA in generado:
+            return cls(generado.split(CIERRA)[0], True)
+        return cls(generado, False)
+
+    @property
+    def formato_valido(self) -> bool:
+        """Cierra la etiqueta, no la vuelve a abrir y tiene al menos MIN_PALABRAS."""
+        return self.cerro and ABRE not in self.texto and len(self.texto.split()) >= MIN_PALABRAS
+
+
+SIN_IMAGINACION = Imaginacion("")
+
+
 def prompt(fragmento: str) -> str:
-    """El texto que recibe el modelo: termina abriendo <imagine>."""
-    return PLANTILLA.format(contexto=fragmento)
+    """Lo que recibe el escritor: termina abriendo <imagine>."""
+    return PLANTILLA.format(fragmento=fragmento)
 
 
-def prompt_continuacion(fragmento: str, imaginado: str) -> str:
-    """El prompt con lo imaginado ya cerrado: el modelo sigue con la continuación."""
-    return prompt(fragmento) + imaginado + CIERRA + "\n"
-
-
-def separar_imaginado(texto: str) -> tuple[str, bool]:
-    """Lo generado tras <imagine> → (lo imaginado, si cerró la etiqueta)."""
-    if CIERRA in texto:
-        return texto.split(CIERRA)[0], True
-    return texto, False
-
-
-def formato_ok(imaginado: str, cerro: bool) -> bool:
-    """La regla de formato de la recompensa: cerró, no reabrió y no está casi vacío."""
-    return cerro and ABRE not in imaginado and len(imaginado.split()) >= MIN_PALABRAS
+def prompt_continuacion(fragmento: str, imaginacion: Imaginacion) -> str:
+    """El prompt con la imaginación ya cerrada: el escritor sigue con la continuación."""
+    return prompt(fragmento) + imaginacion.texto + CIERRA + "\n"
 
 
 def cortar_continuacion(texto: str) -> str:
+    """La continuación termina donde empieza otro turno o el escritor vuelve a las etiquetas."""
     for fin in FINES_CONTINUACION:
         texto = texto.split(fin)[0]
     return texto.strip()
 
 
-def objetivo_supervisado(imaginado: str, referencia: str) -> str:
-    """Lo que el SFT enseña a escribir tras el prompt: imaginar, continuar y ceder el turno."""
-    return imaginado + CIERRA + "\n" + referencia + FIN_TURNO
+def objetivo_supervisado(imaginacion: Imaginacion, referencia: str) -> str:
+    """Lo que el ajuste supervisado enseña tras el prompt: imaginar, continuar como el autor
+    y ceder el turno."""
+    return imaginacion.texto + CIERRA + "\n" + referencia + FIN_TURNO
 
 
-def recortar_inicio(texto: str, max_palabras: int = PALABRAS_DE_CONTEXTO) -> str:
-    """El final del texto que ve el escritor, marcado con … si se recortó."""
+def recortar_fragmento(texto: str, max_palabras: int = PALABRAS_DEL_FRAGMENTO) -> str:
+    """El final del texto previo que ve el escritor, marcado con … si se recortó."""
     palabras = texto.split()
     if len(palabras) <= max_palabras:
         return texto

@@ -5,7 +5,8 @@ uv run python -m imagine.interfaz.app      # http://127.0.0.1:7860
 
 import gradio as gr
 
-from imagine.datos.archivos import TEST, leer_jsonl
+from imagine.datos.archivos import TEST
+from imagine.datos.repositorio import ejemplos_de_prueba
 from imagine.dominio.escritura import TEMPERATURA_ESCRITURA, TOKENS_CONTINUACION
 from imagine.ejecucion.escritor import imaginar_y_continuar
 from imagine.ejecucion.hilo import en_hilo_mlx
@@ -25,17 +26,20 @@ def responder(fragmento: str, etiqueta: str, imaginar: bool, temperatura: float,
 
     def correr():
         model, tok = cargar_por_nombre(MODELOS[etiqueta])
-        return imaginar_y_continuar(model, tok, fragmento, temperatura, largo, imaginar)
+        imaginacion, continuacion = imaginar_y_continuar(
+            model, tok, fragmento, temperatura, largo, imaginar
+        )
+        return imaginacion.texto.strip(), continuacion
 
     # Gradio atiende en sus propios hilos; MLX tiene que correr siempre en el mismo.
     return en_hilo_mlx(correr)
 
 
 def ejemplos(n: int = 4) -> list[list[str]]:
-    """Fragmentos de Niebla, el libro que el modelo no vio al entrenar."""
+    """Fragmentos del libro de prueba (Niebla), que el escritor no vio al entrenar."""
     if not TEST.exists():
         return []
-    return [[f["contexto"]] for f in leer_jsonl(TEST, n)]
+    return [[ejemplo.fragmento] for ejemplo in ejemplos_de_prueba(n)]
 
 
 def construir() -> gr.Blocks:

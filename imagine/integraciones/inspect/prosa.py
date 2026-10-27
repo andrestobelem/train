@@ -19,10 +19,10 @@ from imagine.dominio import prosa as reglas
 from imagine.dominio.escritura import (
     CIERRA,
     FINES_CONTINUACION,
+    SIN_IMAGINACION,
     TEMPERATURA_MUESTREO,
     TOKENS_IMAGINACION,
     cortar_continuacion,
-    formato_ok,
     prompt_continuacion,
 )
 from imagine.ejecucion import puntuacion
@@ -31,6 +31,7 @@ from imagine.ejecucion.modelos import cargar_por_nombre
 
 from . import dataset
 from .metricas import NAN, media_valida
+from .proveedor import imaginacion_de
 
 METRICAS = ["formato", "repeticion", "distintos", "ajenos", "fluidez", "chrf", "palabras"]
 _CHRF = CHRF()
@@ -40,18 +41,16 @@ _CHRF = CHRF()
 def imaginar_y_continuar(imaginar: bool, max_tokens: int, temperatura: float) -> Solver:
     async def resolver(state: TaskState, generate: Generate) -> TaskState:
         fragmento = state.metadata["fragmento"]
+        imaginacion = SIN_IMAGINACION
         if imaginar:
             # Usa la config de la tarea: corta en </imagine>.
             state = await generate(state)
-            imaginado = state.output.completion
-            cerro = (state.output.metadata or {}).get("parada") == CIERRA
-        else:
-            imaginado, cerro = "", True
-        state.store.set("imaginado", imaginado)
-        state.store.set("formato", formato_ok(imaginado, cerro) if imaginar else True)
+            imaginacion = imaginacion_de(state.output)
+        state.store.set("imaginacion", imaginacion.texto)
+        state.store.set("formato", imaginacion.formato_valido if imaginar else True)
 
         salida = await get_model().generate(
-            prompt_continuacion(fragmento, imaginado),
+            prompt_continuacion(fragmento, imaginacion),
             config=GenerateConfig(
                 max_tokens=max_tokens,
                 temperature=temperatura,
@@ -69,12 +68,12 @@ def imaginar_y_continuar(imaginar: bool, max_tokens: int, temperatura: float) ->
 def calidad() -> Scorer:
     async def puntuar(state: TaskState, target: Target) -> Score:
         texto = state.store.get("continuacion", "")
-        ref_model, tok = en_hilo_mlx(cargar_por_nombre)
+        juez, tok = en_hilo_mlx(cargar_por_nombre)
 
         def fluidez():
             if not texto:
                 return NAN
-            return puntuacion.fluidez(ref_model, tok, tok.encode(state.input_text), texto)
+            return puntuacion.fluidez(juez, tok, tok.encode(state.input_text), texto)
 
         return Score(
             value={
@@ -87,7 +86,7 @@ def calidad() -> Scorer:
                 "palabras": float(reglas.palabras(texto)),
             },
             answer=texto,
-            metadata={"imaginado": state.store.get("imaginado")},
+            metadata={"imaginacion": state.store.get("imaginacion")},
         )
 
     return puntuar

@@ -1,8 +1,7 @@
-"""Arma los ejemplos (fragmento, continuación del autor) a partir de las novelas.
+"""Arma los ejemplos (fragmento y referencia) a partir de los libros.
 
-Cada ejemplo es un fragmento de la novela y el texto que el autor escribió
-inmediatamente después. La continuación nunca se le muestra al modelo: sólo se usa
-para calcular la recompensa y para el ajuste supervisado.
+La referencia es lo que el autor escribió inmediatamente después del fragmento. El
+escritor nunca la ve: sólo se usa para medir la ganancia y para el ajuste supervisado.
 
     uv run python -m imagine.datos.corpus
 """
@@ -10,10 +9,12 @@ para calcular la recompensa y para el ajuste supervisado.
 import argparse
 import random
 
-from imagine.dominio.escritura import PALABRAS_DE_CONTEXTO, recortar_inicio
+from imagine.dominio.corpus import Ejemplo
+from imagine.dominio.escritura import PALABRAS_DEL_FRAGMENTO, recortar_fragmento
 
 from . import gutenberg
-from .archivos import DATOS, escribir_jsonl
+from .archivos import DATOS
+from .repositorio import escribir_ejemplos
 
 LIBROS = {
     "train": {
@@ -36,8 +37,15 @@ def recortar_fin(texto: str, max_palabras: int) -> str:
     return corto[: corte + 1] if corte > len(corto) // 2 else corto
 
 
-def ejemplos(parrafos, libro, ctx_palabras=PALABRAS_DE_CONTEXTO, ref_min=30, ref_max=80):
-    """Ventanas deslizantes: contexto = párrafos previos, referencia = lo que sigue."""
+def ejemplos(
+    parrafos: list[str],
+    libro: str,
+    max_fragmento: int = PALABRAS_DEL_FRAGMENTO,
+    ref_min: int = 30,
+    ref_max: int = 80,
+) -> list[Ejemplo]:
+    """Ventanas deslizantes: el fragmento son los párrafos previos y la referencia, lo que
+    sigue (al menos ref_min palabras, aunque abarque varios párrafos)."""
     out = []
     for i in range(3, len(parrafos)):
         ref = parrafos[i]
@@ -48,15 +56,15 @@ def ejemplos(parrafos, libro, ctx_palabras=PALABRAS_DE_CONTEXTO, ref_min=30, ref
         # Párrafos muy cortos suelen ser títulos de capítulo o notas.
         if len(ref.split()) < ref_min or len(parrafos[i].split()) < 8:
             continue
-        ctx = "\n\n".join(parrafos[max(0, i - 6) : i])
-        if len(ctx.split()) < ctx_palabras // 2:
+        previo = "\n\n".join(parrafos[max(0, i - 6) : i])
+        if len(previo.split()) < max_fragmento // 2:
             continue
         out.append(
-            {
-                "libro": libro,
-                "contexto": recortar_inicio(ctx, ctx_palabras),
-                "referencia": recortar_fin(ref, ref_max),
-            }
+            Ejemplo(
+                fragmento=recortar_fragmento(previo, max_fragmento),
+                referencia=recortar_fin(ref, ref_max),
+                libro=libro,
+            )
         )
     return out
 
@@ -78,7 +86,7 @@ def main():
         rnd.shuffle(filas)
         if split == "test":
             filas = filas[: args.max_test]
-        escribir_jsonl(DATOS / f"{split}.jsonl", filas)
+        escribir_ejemplos(DATOS / f"{split}.jsonl", filas)
         print(f"{split}: {len(filas)} ejemplos")
 
 

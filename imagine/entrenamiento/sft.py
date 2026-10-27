@@ -1,11 +1,10 @@
-"""Rejection sampling + SFT, la etapa que sigue al RL en DeepSeek-R1.
+"""Selección + ajuste supervisado, la etapa que sigue al RL en DeepSeek-R1.
 
-1. muestrear: por cada fragmento de entrenamiento, el modelo de RL imagina G veces y
-   nos quedamos con la imaginación que más ayuda a predecir al autor (Δ > 0),
-   verificada contra el corpus igual que en la recompensa.
-2. entrenar: ajuste supervisado sobre fragmento → mejor imaginación → texto real del
-   autor. Así el modelo aprende a escribir como el autor después de imaginar, que el
-   RL nunca le enseñó: sólo premiaba la imaginación.
+1. muestrear: por cada fragmento de entrenamiento, el escritor de RL imagina G veces y
+   la selección se queda con la imaginación de mayor ganancia, si ayuda (ver CONTEXT.md).
+2. entrenar: ajuste supervisado sobre fragmento → imaginación elegida → referencia. Así
+   el escritor aprende a continuar como el autor después de imaginar, algo que el RL
+   nunca le enseñó: sólo premiaba la imaginación.
 
     uv run python -m imagine.entrenamiento.sft muestrear --adaptadores runs/imagine300/paso_00250
     uv run python -m imagine.entrenamiento.sft entrenar --adaptadores runs/imagine300/paso_00250
@@ -20,13 +19,11 @@ import mlx.nn as nn
 import mlx.optimizers as optim
 from mlx.utils import tree_map
 
-from imagine.datos.archivos import SFT, TRAIN, agregar_jsonl, leer_jsonl, ruta_del_proyecto
-from imagine.dominio.escritura import (
-    TEMPERATURA_MUESTREO,
-    TOKENS_IMAGINACION,
-    objetivo_supervisado,
-    prompt,
-)
+from imagine.datos.archivos import SFT, TRAIN, agregar_jsonl, ruta_del_proyecto
+from imagine.datos.repositorio import agregar_supervisado, leer_ejemplos, leer_supervisados
+from imagine.dominio.corpus import EjemploSupervisado
+from imagine.dominio.escritura import TEMPERATURA_MUESTREO, TOKENS_IMAGINACION, prompt
+from imagine.dominio.seleccion import seleccionar
 from imagine.ejecucion import escritor, puntuacion
 from imagine.ejecucion.lm import logprobs_completacion, prellenar
 from imagine.ejecucion.modelos import cargar
@@ -45,36 +42,34 @@ def muestrear(
     temperatura: float,
     semilla: int,
 ) -> None:
-    """Rejection sampling: guarda la mejor imaginación de cada fragmento. Se puede retomar."""
+    """La selección: guarda la imaginación elegida de cada fragmento. Se puede retomar."""
     # Generador propio: el estado global de random lo tocan librerías al importarse.
     rng = random.Random(semilla)
     mx.random.seed(semilla)
-    ejemplos = rng.sample(leer_jsonl(datos), n)
+    ejemplos = rng.sample(leer_ejemplos(datos), n)
     salida = ruta_del_proyecto(salida_datos)
-    hechos = len(leer_jsonl(salida)) if salida.exists() else 0
+    hechos = len(leer_supervisados(salida)) if salida.exists() else 0
     progreso = salida.with_name(salida.name + ".progreso")
     inicio = int(progreso.read_text()) if progreso.exists() else 0
     print(f"retomando desde el fragmento {inicio} ({hechos} ejemplos guardados)")
 
     model, tok = cargar(origen)
-    ref_model, _ = cargar()
+    juez, _ = cargar()
     with open(salida, "a", encoding="utf-8") as f:
         for i in range(inicio, len(ejemplos)):
-            ej = ejemplos[i]
+            ejemplo = ejemplos[i]
             t0 = time.time()
-            p_ids, ims = escritor.imaginar(
-                model, tok, ej["contexto"], grupo, max_tokens, temperatura
+            p_ids, generadas = escritor.imaginar(
+                model, tok, ejemplo.fragmento, grupo, max_tokens, temperatura
             )
-            d = puntuacion.deltas(
-                ref_model, tok, p_ids, [(im.texto, im.cerro) for im in ims], ej["referencia"]
-            )
-            validos = [(x, j) for j, x in enumerate(d) if x is not None and x > 0]
-            if validos:
-                mejor, j = max(validos)
-                agregar_jsonl(f, {**ej, "imaginado": ims[j].texto, "delta": mejor})
+            imaginaciones = [g.imaginacion for g in generadas]
+            ganancias = puntuacion.ganancias(juez, tok, p_ids, imaginaciones, ejemplo.referencia)
+            elegida = seleccionar(imaginaciones, ganancias)
+            if elegida is not None:
+                agregar_supervisado(f, EjemploSupervisado(ejemplo, *elegida))
                 hechos += 1
             progreso.write_text(str(i + 1))
-            texto = f"{max(validos)[0]:+.4f}" if validos else "  —   "
+            texto = f"{elegida[1]:+.4f}" if elegida else "  —   "
             print(
                 f"{i + 1}/{len(ejemplos)} | mejor Δ {texto} | guardados {hechos} | "
                 f"{time.time() - t0:.1f}s"
@@ -85,13 +80,13 @@ def perdida_sft(model, cache, ultimo, comps):
     return -logprobs_completacion(model, cache, ultimo, comps).mean()
 
 
-def _tokens(tok, fila: dict) -> tuple[list[int], list[int]]:
+def _tokens(tok, supervisado: EjemploSupervisado) -> tuple[list[int], list[int]]:
     """(prompt, objetivo) de un ejemplo supervisado."""
-    objetivo = objetivo_supervisado(fila["imaginado"], fila["referencia"])
-    return tok.encode(prompt(fila["contexto"])), tok.encode(objetivo, add_special_tokens=False)
+    p_ids = tok.encode(prompt(supervisado.ejemplo.fragmento))
+    return p_ids, tok.encode(supervisado.objetivo, add_special_tokens=False)
 
 
-def _perdida_media(model, tok, filas: list[dict]) -> float:
+def _perdida_media(model, tok, filas: list[EjemploSupervisado]) -> float:
     total = 0.0
     for fila in filas:
         p_ids, c_ids = _tokens(tok, fila)
@@ -106,7 +101,7 @@ def entrenar(
     """SFT de los adaptadores de origen; guarda uno por época en salida/epoca_N."""
     # Generador propio: el estado global de random lo tocan librerías al importarse.
     rng = random.Random(semilla)
-    filas = leer_jsonl(salida_datos)
+    filas = leer_supervisados(salida_datos)
     rng.shuffle(filas)
     n_val = max(1, len(filas) // 20)
     val, train = filas[:n_val], filas[n_val:]
