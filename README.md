@@ -22,7 +22,13 @@ uv run python -m imagine.interfaz.app        # http://127.0.0.1:7860
 uv run python -m imagine.interfaz.generar "Augusto salió a la calle sin saber adónde ir."
 ```
 
-Los adaptadores entrenados (`runs/`) no están en git. Sin ellos, sólo funciona el modelo base: `--modelo Qwen/Qwen3.5-0.8B-Base`. Los detalles están en [docs/correr-el-modelo.md](docs/correr-el-modelo.md).
+Los adaptadores entrenados (`runs/`) no están en git. El modelo final se baja de un repo privado de Hugging Face, que requiere acceso:
+
+```bash
+uv run hf download andrestobelem/imagine-qwen3.5-0.8b --local-dir runs/sft/epoca_1
+```
+
+Sin los adaptadores, sólo funciona el modelo base: `--modelo Qwen/Qwen3.5-0.8B-Base`. Los detalles están en [docs/correr-el-modelo.md](docs/correr-el-modelo.md#bajar-el-modelo-final).
 
 ## Documentación
 

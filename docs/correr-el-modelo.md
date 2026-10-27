@@ -26,8 +26,18 @@ Un modelo entrenado por este proyecto no es una copia del modelo base: son **ada
 
 Esas rutas están en [`imagine/persistencia/catalogo.py`](../imagine/persistencia/catalogo.py). Donde el código pide un modelo, acepta un repo de Hugging Face o una carpeta de adaptadores.
 
-> [!IMPORTANT]
-> `runs/` no está en git. Si clonaste el repositorio, los adaptadores no vienen incluidos. Para conseguirlos, pedíselos a quien los entrenó y copiá la carpeta (por ejemplo, a `runs/sft/epoca_1/`), o entrenalos siguiendo [entrenar-y-evaluar.md](entrenar-y-evaluar.md). Sin adaptadores, sólo podés usar el modelo base: `--modelo Qwen/Qwen3.5-0.8B-Base`.
+### Bajar el modelo final
+
+`runs/` no está en git, así que al clonar el repositorio los adaptadores no vienen incluidos. El modelo final está en Hugging Face, en el repo privado [andrestobelem/imagine-qwen3.5-0.8b](https://huggingface.co/andrestobelem/imagine-qwen3.5-0.8b). Para bajarlo necesitás una cuenta con acceso a ese repo:
+
+```bash
+uv run hf auth login
+uv run hf download andrestobelem/imagine-qwen3.5-0.8b --local-dir runs/sft/epoca_1
+```
+
+Se baja en la carpeta que el código usa por defecto, así que después alcanza con `uv run python -m imagine.interfaz.generar "…"`. Si no tenés acceso, pedíselo al dueño del repo. También podés entrenar los adaptadores siguiendo [entrenar-y-evaluar.md](entrenar-y-evaluar.md), o usar sólo el modelo base con `--modelo Qwen/Qwen3.5-0.8B-Base`.
+
+El checkpoint de RL (`runs/imagine300/paso_00250`) no está publicado: para usarlo, entrenalo.
 
 ## Qué esperar
 
@@ -108,7 +118,8 @@ uv run python -m mlx_lm generate \
 
 | Síntoma | Causa y solución |
 |---|---|
-| `RepositoryNotFoundError` (401) con `runs/...` | La carpeta de adaptadores no existe y el nombre se interpretó como un repo de Hugging Face. Revisá que esté `adapter_config.json` dentro de la carpeta. |
+| `RepositoryNotFoundError` (401) con `runs/...` | La carpeta de adaptadores no existe y el nombre se interpretó como un repo de Hugging Face. Revisá que esté `adapter_config.json` dentro de la carpeta, o bajala como se explica en [Bajar el modelo final](#bajar-el-modelo-final). |
+| `401` o `403` al bajar el modelo final | No iniciaste sesión, o tu cuenta no tiene acceso al repo privado. Iniciá sesión con `uv run hf auth login` y pedí acceso. |
 | `There is no Stream(cpu, 0) in current thread` | Se usó MLX desde otro hilo. Envolvé la llamada con `en_hilo_mlx`. |
 | Falla la descarga con `CERTIFICATE_VERIFY_FAILED` | Un proxy corporativo intercepta TLS. Para el corpus el proyecto ya usa los certificados del sistema. Para Hugging Face, descargá el modelo una vez desde una red sin proxy o configurá `REQUESTS_CA_BUNDLE`. |
 | La imaginación sale cortada o sin `</imagine>` | Llegó al tope de 96 tokens sin cerrarla. Pasa poco con el modelo final y más con el base o a temperatura alta. El escritor la cierra y continúa igual, pero esa imaginación no tiene formato válido. |
